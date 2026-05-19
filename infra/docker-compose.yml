@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hkcc
+      POSTGRES_PASSWORD: hkcc
+      POSTGRES_DB: hkcc
+    ports:
+      - "5432:5432"
+    volumes:
+      - hkcc_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hkcc"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    environment:
+      DATABASE_URL: postgresql+psycopg://hkcc:hkcc@db:5432/hkcc
+      HKCC_RELEASE_TAG: dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    environment:
+      DATABASE_URL: postgresql+psycopg://hkcc:hkcc@db:5432/hkcc
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  hkcc_pg:
