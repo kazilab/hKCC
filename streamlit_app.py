@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from app.data_client import DataSource, data_source_label, get_data_source
 from app.theme import HKCC_CSS
 
 st.set_page_config(
@@ -20,6 +21,10 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
     st.markdown("---")
+    if get_data_source() is DataSource.MOCKUP:
+        st.info(data_source_label())
+    else:
+        st.caption(data_source_label())
     st.caption("Data CC-BY 4.0 · Code MIT")
 
 pages = [

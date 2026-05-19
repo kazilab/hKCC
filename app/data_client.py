@@ -1,43 +1,98 @@
-"""Fetch hKCC data from API or fall back to direct DB."""
+"""Fetch hKCC data from API, PostgreSQL, or bundled mockup (data.js)."""
 
 from __future__ import annotations
 
 import os
+from enum import Enum
 from functools import lru_cache
 from typing import Any
 
 import httpx
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
-from db.models import KCC, Agent, Assay, AssayKCC, Evidence, Reference
+from app import mockup_store
+from db.models import Agent, Assay, AssayKCC, Evidence, KCC, Reference
 from db.session import SessionLocal
 
-API_BASE = os.environ.get("API_BASE_URL", "http://localhost:8000").rstrip("/")
+API_BASE = os.environ.get("API_BASE_URL", "").rstrip("/")
 
 
-def _clear_api_cache() -> None:
-    _use_api.cache_clear()
+class DataSource(str, Enum):
+    API = "api"
+    DATABASE = "database"
+    MOCKUP = "mockup"
+
+
+def _api_configured() -> bool:
+    return bool(API_BASE)
 
 
 @lru_cache(maxsize=1)
-def _use_api() -> bool:
+def _api_healthy() -> bool:
+    if not _api_configured():
+        return False
     try:
-        r = httpx.get(f"{API_BASE}/health", timeout=2.0)
+        r = httpx.get(f"{API_BASE}/health", timeout=3.0)
         return r.status_code == 200
     except httpx.HTTPError:
         return False
 
 
+def _db_configured() -> bool:
+    return bool(os.environ.get("DATABASE_URL", "").strip())
+
+
+@lru_cache(maxsize=1)
+def _db_healthy() -> bool:
+    if not _db_configured():
+        return False
+    try:
+        db = SessionLocal()
+        try:
+            db.execute(select(KCC).limit(1))
+            return True
+        finally:
+            db.close()
+    except SQLAlchemyError:
+        return False
+
+
+@lru_cache(maxsize=1)
+def get_data_source() -> DataSource:
+    if _api_healthy():
+        return DataSource.API
+    if _db_healthy():
+        return DataSource.DATABASE
+    return DataSource.MOCKUP
+
+
+def data_source_label() -> str:
+    src = get_data_source()
+    if src is DataSource.API:
+        return f"API · {API_BASE}"
+    if src is DataSource.DATABASE:
+        return "PostgreSQL"
+    return "Bundled demo data (set DATABASE_URL or API_BASE_URL in Streamlit secrets)"
+
+
 def _get(path: str) -> Any:
-    r = httpx.get(f"{API_BASE}/api/v1{path}", timeout=10.0)
+    r = httpx.get(f"{API_BASE}/api/v1{path}", timeout=15.0)
     r.raise_for_status()
     return r.json()
 
 
+def _mock() -> dict[str, Any]:
+    return mockup_store.load()
+
+
 def list_kccs() -> list[dict]:
-    if _use_api():
+    src = get_data_source()
+    if src is DataSource.API:
         return _get("/kccs")
+    if src is DataSource.MOCKUP:
+        return _mock()["kccs"]
     db = SessionLocal()
     try:
         rows = db.scalars(select(KCC).order_by(KCC.n)).all()
@@ -59,8 +114,11 @@ def list_kccs() -> list[dict]:
 
 
 def list_agents() -> list[dict]:
-    if _use_api():
+    src = get_data_source()
+    if src is DataSource.API:
         return _get("/agents")
+    if src is DataSource.MOCKUP:
+        return [{k: v for k, v in a.items() if k != "evidence"} for a in _mock()["agents"]]
     db = SessionLocal()
     try:
         rows = db.scalars(select(Agent).options(selectinload(Agent.sites)).order_by(Agent.name)).all()
@@ -81,8 +139,11 @@ def list_agents() -> list[dict]:
 
 
 def get_matrix() -> dict:
-    if _use_api():
+    src = get_data_source()
+    if src is DataSource.API:
         return _get("/matrix")
+    if src is DataSource.MOCKUP:
+        return _mock()["matrix"]
     db = SessionLocal()
     try:
         kccs = list(db.scalars(select(KCC).order_by(KCC.n)))
@@ -105,8 +166,11 @@ def get_matrix() -> dict:
 
 
 def agents_with_evidence() -> tuple[list[dict], list[dict]]:
-    """Agents merged with per-KCC scores and matrix metadata."""
     kccs = list_kccs()
+    src = get_data_source()
+    if src is DataSource.MOCKUP:
+        agents = [dict(a) for a in _mock()["agents"]]
+        return agents, kccs
     agents = list_agents()
     matrix = get_matrix()
     by_id = {r["agent_id"]: r for r in matrix["rows"]}
@@ -119,13 +183,26 @@ def agents_with_evidence() -> tuple[list[dict], list[dict]]:
 
 
 def get_agent(agent_id: str) -> dict | None:
-    if _use_api():
+    src = get_data_source()
+    if src is DataSource.API:
         try:
             return _get(f"/agents/{agent_id}")
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return None
             raise
+    if src is DataSource.MOCKUP:
+        for a in _mock()["agents"]:
+            if a["id"] == agent_id:
+                ev = a.get("evidence", {})
+                return {
+                    **{k: v for k, v in a.items() if k != "evidence"},
+                    "evidence": [
+                        {"kcc_id": kid, "score": score, "n_refs": 1 if score > 0 else 0, "reference_ids": []}
+                        for kid, score in ev.items()
+                    ],
+                }
+        return None
     db = SessionLocal()
     try:
         agent = db.scalar(
@@ -163,18 +240,21 @@ def get_agent(agent_id: str) -> dict | None:
 
 
 def agent_evidence_map(agent: dict, kcc_ids: list[str] | None = None) -> dict[str, int]:
-    if "evidence" in agent and isinstance(agent["evidence"], dict):
+    if isinstance(agent.get("evidence"), dict):
         return agent["evidence"]
-    if "evidence" in agent and isinstance(agent["evidence"], list):
+    if isinstance(agent.get("evidence"), list):
         return {e["kcc_id"]: e["score"] for e in agent["evidence"]}
     return {}
 
 
 def kcc_stats(db: Session | None = None) -> dict[str, dict[str, int]]:
-    close = False
+    if get_data_source() is DataSource.MOCKUP:
+        return _mock()["stats"]
     if db is None:
         db = SessionLocal()
         close = True
+    else:
+        close = False
     try:
         carc_counts = dict(
             db.execute(
@@ -194,8 +274,11 @@ def kcc_stats(db: Session | None = None) -> dict[str, dict[str, int]]:
 
 
 def list_assays() -> list[dict]:
-    if _use_api():
+    src = get_data_source()
+    if src is DataSource.API:
         return _get("/assays")
+    if src is DataSource.MOCKUP:
+        return _mock()["assays"]
     db = SessionLocal()
     try:
         rows = db.scalars(select(Assay).options(selectinload(Assay.kcc_links)).order_by(Assay.name)).all()
@@ -217,8 +300,11 @@ def list_assays() -> list[dict]:
 
 
 def list_references() -> list[dict]:
-    if _use_api():
+    src = get_data_source()
+    if src is DataSource.API:
         return _get("/assays/references")
+    if src is DataSource.MOCKUP:
+        return _mock()["references"]
     db = SessionLocal()
     try:
         rows = db.scalars(
@@ -254,4 +340,4 @@ def list_references_count() -> int:
 
 
 def api_base_url() -> str:
-    return API_BASE
+    return API_BASE or "http://localhost:8000"

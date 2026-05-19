@@ -27,9 +27,11 @@ docker compose up api app
    ```
 
 3. Deploy API (Railway, Fly.io, or Render) with `DATABASE_URL` and `HKCC_RELEASE_TAG`.
-4. Deploy Streamlit app; set secrets:
-   - `DATABASE_URL`
-   - `API_BASE_URL` (public API URL)
+4. Deploy Streamlit app; set secrets (see `.streamlit/secrets.toml.example`):
+   - `DATABASE_URL` — required for live curated data
+   - `API_BASE_URL` — optional; if healthy, API takes priority over the DB
+
+   **Without secrets**, the app runs in **demo mode** using bundled `data.js` (no Postgres needed).
 
 5. Tag releases: `python -m pipelines.export_release --tag 0.1.0` then upload `exports/` to Zenodo.
 
