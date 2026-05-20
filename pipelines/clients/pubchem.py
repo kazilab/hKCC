@@ -52,7 +52,10 @@ def assay_summary_table(cid: int, *, max_rows: int = 50) -> tuple[list[str], lis
         cells = row.get("Cell", [])
         if isinstance(cells, str):
             cells = [cells]
-        rec = {cols[i] if i < len(cols) else f"col_{i}": str(cells[i]) if i < len(cells) else "" for i in range(max(len(cols), len(cells)))}
+        rec: dict[str, str] = {}
+        for i in range(max(len(cols), len(cells))):
+            key = cols[i] if i < len(cols) else f"col_{i}"
+            rec[key] = str(cells[i]) if i < len(cells) else ""
         out.append(rec)
     return cols, out
 

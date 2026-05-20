@@ -1,4 +1,3 @@
-from pipelines.clients.pubchem import assay_summary_table
 
 
 def test_assay_summary_table_parsing():

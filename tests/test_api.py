@@ -1,5 +1,5 @@
 from api.main import app
-from db.models import Agent, KCC
+from db.models import KCC, Agent
 from db.session import get_db
 
 

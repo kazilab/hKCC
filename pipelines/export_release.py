@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 from sqlalchemy import select
 
-from db.models import Agent, DatasetRelease, Evidence, KCC
+from db.models import KCC, Agent, DatasetRelease, Evidence
 from db.session import SessionLocal
 
 EXPORT_DIR = Path(__file__).resolve().parents[1] / "exports"

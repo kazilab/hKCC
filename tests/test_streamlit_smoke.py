@@ -12,7 +12,7 @@ def test_streamlit_pages_exist():
         "6_Assays.py",
         "7_Literature.py",
         "8_API_Downloads.py",
-        "10_Live_Feeds.py",
+        "10_live_feeds.py",
     ]
     assert (root / "streamlit_app.py").is_file()
     for p in pages:

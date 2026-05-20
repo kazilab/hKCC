@@ -4,8 +4,11 @@ from pathlib import Path
 
 import streamlit as st
 
+from api.observability import init_sentry
 from app.data_client import DataSource, data_source_label, get_data_source
 from app.theme import HKCC_CSS
+
+init_sentry("streamlit")
 
 APP_ROOT = Path(__file__).resolve().parent
 PAGES_DIR = APP_ROOT / "app" / "pages"
