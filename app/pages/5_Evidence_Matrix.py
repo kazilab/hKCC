@@ -6,10 +6,12 @@ import streamlit.components.v1 as components
 
 from app.components.matrix import render_matrix
 from app.data_client import get_matrix, list_kccs
-from app.theme import HKCC_CSS
+from app.page_shell import init_page
+from app.theme import MATRIX_STYLES, get_matrix_style
 from app.utils.evidence import ev_legend_html, kcc_coverage, total_evidence
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+init_page("matrix")
+default_style = get_matrix_style()
 
 kccs = list_kccs()
 matrix = get_matrix()
@@ -24,7 +26,10 @@ with c1:
 with c2:
     group_filter = st.selectbox("IARC group", ["all", "1", "2A", "2B"])
 with c3:
-    matrix_style = st.selectbox("Style", ["heatmap", "number", "dot"])
+    style_index = MATRIX_STYLES.index(default_style) if default_style in MATRIX_STYLES else 0
+    matrix_style = st.selectbox("Style", MATRIX_STYLES, index=style_index)
+    if matrix_style != st.session_state.get("hkcc_matrix_style"):
+        st.session_state["hkcc_matrix_style"] = matrix_style
 
 rows = matrix["rows"]
 if group_filter != "all":

@@ -3,9 +3,9 @@
 import streamlit as st
 
 from app.data_client import list_assays, list_kccs
-from app.theme import HKCC_CSS
+from app.page_shell import init_page
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+init_page("assays")
 
 all_assays = list_assays()
 kccs = list_kccs()

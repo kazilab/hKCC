@@ -1,9 +1,8 @@
 """Live feeds — dedicated navigation page."""
 
-import streamlit as st
 
-from app.theme import HKCC_CSS
+from app.page_shell import init_page
 from app.views.live_feeds import render_live_feeds
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+init_page("live_feeds")
 render_live_feeds(show_header=True)

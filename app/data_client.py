@@ -87,6 +87,13 @@ def _mock() -> dict[str, Any]:
     return mockup_store.load()
 
 
+def get_kcc(kcc_id: str) -> dict | None:
+    for k in list_kccs():
+        if k["id"] == kcc_id:
+            return k
+    return None
+
+
 def list_kccs() -> list[dict]:
     src = get_data_source()
     if src is DataSource.API:
@@ -106,6 +113,7 @@ def list_kccs() -> list[dict]:
                 "mechanism": k.mechanism,
                 "icon": k.icon,
                 "is_extended": k.is_extended,
+                "examples": [],
             }
             for k in rows
         ]
@@ -237,6 +245,71 @@ def get_agent(agent_id: str) -> dict | None:
         }
     finally:
         db.close()
+
+
+def agents_for_kcc(kcc_id: str, *, min_score: int = 2) -> list[dict]:
+    """Agents with evidence >= min_score on the given KCC, sorted by score desc."""
+    agents, _ = agents_with_evidence()
+    linked = []
+    for a in agents:
+        ev = a.get("evidence", {})
+        if isinstance(ev, list):
+            ev = {e["kcc_id"]: e["score"] for e in ev}
+        score = ev.get(kcc_id, 0)
+        if score >= min_score:
+            linked.append({**a, "kcc_score": score})
+    return sorted(linked, key=lambda x: x["kcc_score"], reverse=True)
+
+
+def assays_for_kcc(kcc_id: str) -> list[dict]:
+    return [a for a in list_assays() if kcc_id in a.get("kcc_ids", [])]
+
+
+def references_for_kcc(kcc_id: str) -> list[dict]:
+    """References linked to this KCC; includes foundational refs with no specific kcc_ids."""
+    refs = list_references()
+    foundational_tags = {"Foundational", "Methodology", "Review", "Database"}
+    out = []
+    for r in refs:
+        kids = r.get("kcc_ids", [])
+        tags = set(r.get("tags", []))
+        if kcc_id in kids:
+            out.append(r)
+        elif not kids and tags & foundational_tags:
+            out.append(r)
+    return out
+
+
+def evidence_for_agent(agent_id: str) -> list[dict]:
+    """Per-cell evidence with resolved reference records."""
+    agent = get_agent(agent_id)
+    if not agent:
+        return []
+    refs_by_id = {r["id"]: r for r in list_references()}
+    foundational = refs_by_id.get("smith2016")
+    rows = agent.get("evidence", [])
+    if isinstance(rows, dict):
+        rows = [
+            {"kcc_id": kid, "score": score, "n_refs": 0, "reference_ids": []}
+            for kid, score in rows.items()
+        ]
+    enriched = []
+    for e in rows:
+        ref_ids = list(e.get("reference_ids", []))
+        refs = [refs_by_id[rid] for rid in ref_ids if rid in refs_by_id]
+        if not refs and foundational and e.get("score", 0) > 0:
+            refs = [foundational]
+            ref_ids = [foundational["id"]]
+        enriched.append(
+            {
+                "kcc_id": e["kcc_id"],
+                "score": e["score"],
+                "n_refs": e.get("n_refs", len(refs)),
+                "reference_ids": ref_ids,
+                "refs": refs,
+            }
+        )
+    return enriched
 
 
 def agent_evidence_map(agent: dict, kcc_ids: list[str] | None = None) -> dict[str, int]:

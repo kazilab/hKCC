@@ -4,16 +4,17 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+from app.components.agent_table import render_agent_table
 from app.data_client import agents_with_evidence
-from app.theme import HKCC_CSS
-from app.utils.evidence import (
-    ev_legend_html,
-    evidence_fingerprint_html,
-    kcc_coverage,
-    total_evidence,
-)
+from app.page_shell import global_search_query, init_page
+from app.utils.evidence import ev_legend_html, kcc_coverage, total_evidence
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+THEME, _ = init_page("carcinogens")
+
+# Row click via query param
+if st.query_params.get("agent_id"):
+    st.session_state["agent_id"] = st.query_params["agent_id"]
+    st.switch_page("app/pages/4_Agent_Detail.py")
 
 agents, kccs = agents_with_evidence()
 kcc_order = [k["id"] for k in kccs]
@@ -24,12 +25,14 @@ st.markdown(
     f'<h1 class="h-display" style="font-size:2rem">Carcinogens & suspect agents ({len(agents)})</h1>',
     unsafe_allow_html=True,
 )
-st.caption("Searchable curated list with mechanistic evidence across 14 KCCs. Select a row to open the profile.")
+st.caption("Searchable curated list with mechanistic evidence across 14 KCCs. Click a row to open the profile.")
+
+q_default = global_search_query()
 
 with st.container(border=True):
     c1, c2, c3, c4 = st.columns([2, 2, 1, 2])
     with c1:
-        q = st.text_input("Search", placeholder="Name, CAS, type…", label_visibility="collapsed")
+        q = st.text_input("Search", value=q_default, placeholder="Name, CAS, type…", label_visibility="collapsed")
     with c2:
         group = st.selectbox(
             "IARC group",
@@ -73,42 +76,18 @@ for a in filtered:
     scores = [ev.get(kid, 0) for kid in kcc_order]
     table_rows.append(
         {
-            "Agent": a["name"],
-            "CAS": a.get("cas", "—"),
-            "Type": a["agent_type"],
-            "IARC": a.get("iarc_group", "—"),
-            "Tumour sites": ", ".join(a.get("sites", [])[:3]),
-            "Coverage": f"{kcc_coverage(ev)}/14",
-            "_id": a["id"],
-            "_scores": scores,
+            "id": a["id"],
+            "name": a["name"],
+            "cas": a.get("cas", "—"),
+            "agent_type": a["agent_type"],
+            "iarc_group": a.get("iarc_group", "—"),
+            "sites": a.get("sites", []),
+            "scores": scores,
+            "evidence": ev,
         }
     )
 
-def _agent_label(aid: str | None) -> str:
-    if aid is None:
-        return "— select —"
-    return next((r["Agent"] for r in table_rows if r["_id"] == aid), aid)
-
-
-pick = st.selectbox(
-    "Open agent profile",
-    options=[None] + [r["_id"] for r in table_rows],
-    format_func=_agent_label,
-)
-if pick:
-    st.session_state["agent_id"] = pick
-    st.query_params["agent_id"] = pick
-    if st.button("View profile →", type="primary"):
-        st.switch_page("app/pages/4_Agent_Detail.py")
-
-display = pd.DataFrame([{k: v for k, v in r.items() if not k.startswith("_")} for r in table_rows])
-st.dataframe(display, use_container_width=True, hide_index=True)
-
-with st.expander("KCC fingerprints (preview)", expanded=False):
-    for row in table_rows[:8]:
-        st.markdown(f"**{row['Agent']}**")
-        components.html(evidence_fingerprint_html(row["_scores"], shorts), height=22)
-
+render_agent_table(table_rows, kcc_shorts=shorts)
 components.html(ev_legend_html(), height=40)
 
 exp1, exp2 = st.columns(2)

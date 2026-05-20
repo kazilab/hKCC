@@ -4,9 +4,13 @@ import streamlit as st
 
 from app.components.glyphs import render_glyph
 from app.data_client import kcc_stats, list_kccs
-from app.theme import HKCC_CSS, THEME
+from app.page_shell import init_page
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+THEME, _ = init_page("kccs")
+
+if st.query_params.get("kcc_id"):
+    st.session_state["kcc_id"] = st.query_params["kcc_id"]
+    st.switch_page("app/pages/2a_KCC_Detail.py")
 
 kccs = list_kccs()
 stats = kcc_stats()
@@ -49,6 +53,9 @@ if view == "Grid":
                     st.caption(f"{s['carc_count']} agents · {s['assay_count']} assays")
                     if k["is_extended"]:
                         st.caption("Extended set")
+                    if st.button("Open detail →", key=f"kcc_open_{k['id']}", use_container_width=True):
+                        st.query_params["kcc_id"] = k["id"]
+                        st.switch_page("app/pages/2a_KCC_Detail.py")
 else:
     rows = []
     for k in filtered:
@@ -64,22 +71,11 @@ else:
             }
         )
     st.dataframe(rows, use_container_width=True, hide_index=True)
-
-# Detail panel
-st.markdown("---")
-st.subheader("KCC detail")
-choice = st.selectbox(
-    "Select a characteristic",
-    options=filtered,
-    format_func=lambda k: f"KCC-{k['n']:02d}: {k['title']}",
-)
-if choice:
-    color = THEME["teal"] if choice["is_extended"] else THEME["accent"]
-    c1, c2 = st.columns([1, 10])
-    with c1:
-        render_glyph(choice["icon"], size=32, color=color)
-    with c2:
-        st.markdown(f"## {choice['title']}")
-        st.write(choice["description"])
-        st.markdown("**Mechanism**")
-        st.write(choice["mechanism"])
+    pick = st.selectbox(
+        "Open KCC detail",
+        options=filtered,
+        format_func=lambda k: f"KCC-{k['n']:02d}: {k['title']}",
+    )
+    if pick and st.button("View KCC detail →", type="primary"):
+        st.query_params["kcc_id"] = pick["id"]
+        st.switch_page("app/pages/2a_KCC_Detail.py")

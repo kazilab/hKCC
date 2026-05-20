@@ -4,14 +4,7 @@ from __future__ import annotations
 
 import streamlit.components.v1 as components
 
-from app.theme import THEME
-from app.utils.evidence import EV_COLORS, kcc_coverage, total_evidence
-
-P = THEME["paper2"]
-P3 = THEME["paper3"]
-INK = THEME["ink"]
-MUTED = THEME["muted"]
-RULE = THEME["rule"]
+from app.utils.evidence import kcc_coverage, total_evidence
 
 
 def matrix_heatmap_html(
@@ -21,6 +14,14 @@ def matrix_heatmap_html(
     matrix_style: str = "heatmap",
 ) -> str:
     """rows: {id, name, iarc_group, scores: {kcc_id: int}}"""
+    from app.theme import EV_COLORS, THEME
+
+    P = THEME["paper2"]
+    P3 = THEME["paper3"]
+    INK = THEME["ink"]
+    MUTED = THEME["muted"]
+    RULE = THEME["rule"]
+    ACCENT = THEME["accent"]
     cell = 32
     header_cells = "".join(
         f"""<th style="padding:0;border-bottom:1px solid {RULE};border-right:1px solid {RULE};background:{P}">
@@ -40,16 +41,25 @@ def matrix_heatmap_html(
             v = scores.get(k["id"], 0)
             bg = EV_COLORS.get(v, EV_COLORS[0])
             inner = ""
-            if matrix_style == "number" and v > 0:
+            if matrix_style == "bar" and v > 0:
+                pct = int((v / 4) * 100)
+                bg = EV_COLORS[0]
+                inner = (
+                    f'<span style="display:inline-block;width:70%;height:{pct}%;min-height:2px;'
+                    f"background:{ACCENT};position:relative;vertical-align:bottom\"></span>"
+                )
+            elif matrix_style == "number" and v > 0:
                 color = "#fff" if v >= 3 else INK
                 inner = f'<span style="font-family:JetBrains Mono,monospace;font-size:11px;color:{color}">{v}</span>'
             elif matrix_style == "dot" and v > 0:
                 sz = 4 + v * 2
                 inner = f'<span style="width:{sz}px;height:{sz}px;border-radius:50%;background:{INK};opacity:0.85;display:inline-block"></span>'
+            elif matrix_style == "heatmap":
+                bg = EV_COLORS.get(v, EV_COLORS[0])
             cells.append(
                 f'<td title="{row["name"]} × {k["short"]} = {v}/4" style="width:{cell}px;height:{cell}px;'
                 f"background:{bg};border-bottom:1px solid {RULE};border-right:1px solid {RULE};"
-                f'text-align:center;vertical-align:middle">{inner}</td>'
+                f'text-align:center;vertical-align:bottom;position:relative">{inner}</td>'
             )
         w = total_evidence(scores)
         cov = kcc_coverage(scores)

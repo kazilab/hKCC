@@ -2,10 +2,11 @@
 
 import streamlit as st
 
+from app.components.ref_card import render_ref_cards
 from app.data_client import list_references
-from app.theme import HKCC_CSS
+from app.page_shell import init_page
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+init_page("literature")
 
 refs = list_references()
 tags = ["all"] + sorted({t for r in refs for t in r.get("tags", [])})
@@ -33,15 +34,5 @@ if years:
 tag_filter = st.radio("Tag", tags, horizontal=True)
 filtered = refs if tag_filter == "all" else [r for r in refs if tag_filter in r.get("tags", [])]
 
-for ref in filtered:
-    with st.container(border=True):
-        c1, c2 = st.columns([4, 1])
-        with c1:
-            st.markdown(f"**{ref.get('year', '—')}** · {ref['title']}")
-            st.caption(f"{ref['authors']} · _{ref['journal']}_ · {ref.get('vol', '')}")
-            if ref.get("doi") and ref["doi"] != "—":
-                st.markdown(f"[DOI](https://doi.org/{ref['doi'].replace('https://doi.org/', '')})")
-        with c2:
-            if ref.get("tags"):
-                st.caption(", ".join(ref["tags"]))
-            st.caption(f"{ref.get('citations', 0)} citations")
+st.caption(f"Showing {len(filtered)} references")
+render_ref_cards(filtered)

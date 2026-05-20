@@ -2,9 +2,9 @@
 
 import streamlit as st
 
-from app.theme import HKCC_CSS
+from app.page_shell import init_page
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+init_page("about")
 
 st.markdown('<p class="mono">About hKCC</p>', unsafe_allow_html=True)
 st.markdown(

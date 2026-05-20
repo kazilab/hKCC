@@ -19,6 +19,7 @@ def _norm_kccs(raw: list[dict]) -> list[dict]:
             "mechanism": k.get("mechanism", ""),
             "icon": k["icon"],
             "is_extended": bool(k.get("isNew")),
+            "examples": k.get("examples", []),
         }
         for k in raw
     ]
