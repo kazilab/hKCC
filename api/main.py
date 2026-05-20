@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.observability import init_sentry
 from api.routers import agents, assays, contribute, kccs, matrix
-from db.config import get_settings
+from db.config import allowed_origins, get_settings
+
+init_sentry("api")
 
 settings = get_settings()
 
@@ -13,12 +16,14 @@ app = FastAPI(
     license_info={"name": "MIT"},
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
+_origins = allowed_origins()
+if _origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_origins,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
 
 prefix = "/api/v1"
 app.include_router(kccs.router, prefix=prefix)

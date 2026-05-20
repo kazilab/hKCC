@@ -21,12 +21,22 @@ services:
       dockerfile: infra/Dockerfile.api
     environment:
       DATABASE_URL: postgresql+psycopg://hkcc:hkcc@db:5432/hkcc
-      HKCC_RELEASE_TAG: dev
+      HKCC_RELEASE_TAG: ${HKCC_RELEASE_TAG:-dev}
+      HKCC_ALLOWED_ORIGINS: ${HKCC_ALLOWED_ORIGINS:-}
+      HKCC_RUN_MIGRATIONS: "1"
+      HKCC_RUN_SEED: ${HKCC_RUN_SEED:-0}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   app:
     build:
@@ -35,10 +45,21 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://hkcc:hkcc@db:5432/hkcc
       API_BASE_URL: http://api:8000
+      HKCC_RELEASE_TAG: ${HKCC_RELEASE_TAG:-dev}
+      OPENALEX_MAILTO: ${OPENALEX_MAILTO:-}
+      EPA_CCTE_API_KEY: ${EPA_CCTE_API_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "8501:8501"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
 
 volumes:
   hkcc_pg:

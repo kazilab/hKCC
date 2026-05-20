@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from api.schemas import MatrixOut, MatrixRowOut
-from db.models import Agent, Evidence, KCC
+from db.models import KCC, Agent
 from db.session import get_db
 
 router = APIRouter(prefix="/matrix", tags=["matrix"])

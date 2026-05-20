@@ -11,7 +11,7 @@ Requires-Dist: uvicorn[standard]>=0.32.0
 Requires-Dist: sqlalchemy>=2.0.36
 Requires-Dist: alembic>=1.14.0
 Requires-Dist: psycopg[binary]>=3.2.0
-Requires-Dist: pydantic>=2.10.0
+Requires-Dist: pydantic[email]>=2.10.0
 Requires-Dist: pydantic-settings>=2.6.0
 Requires-Dist: httpx>=0.28.0
 Requires-Dist: python-multipart>=0.0.17
@@ -74,7 +74,7 @@ pytest
 app/          Streamlit UI
 api/          FastAPI service
 db/           Models, Alembic, seed
-pipelines/    Export + external sync stubs
+pipelines/    Export, external API clients (`pipelines/clients/`), batch stubs
 infra/        Docker Compose, deploy guide
 tests/        pytest
 docs/         Scope & architecture notes
@@ -90,8 +90,8 @@ Exports land in `exports/<tag>/` (CSV, JSON manifest, Parquet). Archive to Zenod
 
 ## Roadmap (from project brief)
 
-- [x] Schema + seed + API + Overview/KCC browse
-- [ ] Carcinogens browse + detail
-- [ ] Evidence matrix heatmap (`st.components.html`)
-- [ ] Assays, Literature, API page, About
+- [x] Schema + seed + API + all Streamlit pages (Overview → About)
+- [x] Evidence matrix heatmap (`st.components.html`)
+- [x] Agent radar plot (`st.components.html`)
 - [ ] ORCID curator UI (v2)
+- [x] Live feed UI (PubChem, PubChem assay summary / screening bridge, OpenAlex, CompTox links + optional CCTE key)

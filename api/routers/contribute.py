@@ -2,14 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from api.ratelimit import rate_limit_contribute
 from api.schemas import ContributeIn, ContributeOut
-from db.models import Agent, Evidence, KCC, Revision
+from db.models import KCC, Agent, Evidence, Revision
 from db.session import get_db
 
 router = APIRouter(prefix="/contribute", tags=["contribute"])
 
 
-@router.post("", response_model=ContributeOut)
+@router.post(
+    "",
+    response_model=ContributeOut,
+    dependencies=[Depends(rate_limit_contribute)],
+)
 def submit_contribution(body: ContributeIn, db: Session = Depends(get_db)) -> ContributeOut:
     if not db.get(Agent, body.agent_id):
         raise HTTPException(status_code=404, detail="Agent not found")

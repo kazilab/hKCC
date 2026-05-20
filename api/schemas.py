@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class KCCOut(BaseModel):
@@ -81,12 +81,12 @@ class ReferenceOut(BaseModel):
 
 
 class ContributeIn(BaseModel):
-    agent_id: str
-    kcc_id: str
+    agent_id: str = Field(min_length=1, max_length=64)
+    kcc_id: str = Field(min_length=1, max_length=32)
     proposed_score: int = Field(ge=0, le=4)
-    rationale: str
-    submitter_name: str | None = None
-    submitter_email: str | None = None
+    rationale: str = Field(min_length=10, max_length=4000)
+    submitter_name: str | None = Field(default=None, max_length=255)
+    submitter_email: EmailStr | None = None
 
 
 class ContributeOut(BaseModel):

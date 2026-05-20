@@ -52,7 +52,7 @@ def reference_bibtex(ref: Reference) -> str:
         f"  journal = {{{ref.journal}}},\n"
         f"  year = {{{ref.year or ''}}},\n"
         f"  volume = {{{ref.vol or ''}}}{doi}\n"
-        "}}\n"
+        "}\n"
     )
 
 

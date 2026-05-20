@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from enum import Enum
+from enum import StrEnum
 from functools import lru_cache
 from typing import Any
 
@@ -13,13 +13,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app import mockup_store
-from db.models import Agent, Assay, AssayKCC, Evidence, KCC, Reference
+from db.models import KCC, Agent, Assay, AssayKCC, Evidence, Reference
 from db.session import SessionLocal
 
 API_BASE = os.environ.get("API_BASE_URL", "").rstrip("/")
 
 
-class DataSource(str, Enum):
+class DataSource(StrEnum):
     API = "api"
     DATABASE = "database"
     MOCKUP = "mockup"

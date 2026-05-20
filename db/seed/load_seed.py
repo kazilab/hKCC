@@ -9,6 +9,7 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from db.models import (
+    KCC,
     Agent,
     AgentSite,
     Assay,
@@ -16,7 +17,6 @@ from db.models import (
     DatasetRelease,
     Evidence,
     EvidenceCitation,
-    KCC,
     Reference,
     ReferenceKCC,
     ReferenceTag,
@@ -69,7 +69,6 @@ def seed_session(db: Session, *, reset: bool = False) -> None:
             )
         )
 
-    ref_ids = {r["id"] for r in data["literature"]}
     for row in data["literature"]:
         db.merge(
             Reference(
