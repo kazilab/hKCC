@@ -4,7 +4,7 @@ import streamlit as st
 
 from app.components.radar import render_radar
 from app.data_client import agent_evidence_map, get_agent, list_kccs, list_references
-from app.theme import HKCC_CSS
+from app.theme import HKCC_CSS, THEME
 from app.utils.evidence import EV_COLORS, kcc_coverage, total_evidence
 
 st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
@@ -59,7 +59,7 @@ with tab[0]:
             )
             st.markdown(
                 f'<div style="display:grid;grid-template-columns:40px 1fr 120px;gap:8px;align-items:center;'
-                f'padding:8px 0;border-bottom:1px solid #DDD6C5">'
+                f'padding:8px 0;border-bottom:1px solid {THEME["rule"]}">'
                 f'<span style="font-family:JetBrains Mono,monospace;font-size:10px">{k["n"]:02d}</span>'
                 f'<span>{k["short"]}</span>{bar}</div>',
                 unsafe_allow_html=True,

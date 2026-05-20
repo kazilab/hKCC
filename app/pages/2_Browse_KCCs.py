@@ -4,7 +4,7 @@ import streamlit as st
 
 from app.components.glyphs import render_glyph
 from app.data_client import kcc_stats, list_kccs
-from app.theme import HKCC_CSS
+from app.theme import HKCC_CSS, THEME
 
 st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
 
@@ -36,7 +36,7 @@ if view == "Grid":
     cols = st.columns(2)
     for i, k in enumerate(filtered):
         s = stats.get(k["id"], {"carc_count": 0, "assay_count": 0})
-        color = "#2D5959" if k["is_extended"] else "#8B2E2A"
+        color = THEME["teal"] if k["is_extended"] else THEME["accent"]
         with cols[i % 2]:
             with st.container(border=True):
                 g1, g2 = st.columns([1, 8])
@@ -74,7 +74,7 @@ choice = st.selectbox(
     format_func=lambda k: f"KCC-{k['n']:02d}: {k['title']}",
 )
 if choice:
-    color = "#2D5959" if choice["is_extended"] else "#8B2E2A"
+    color = THEME["teal"] if choice["is_extended"] else THEME["accent"]
     c1, c2 = st.columns([1, 10])
     with c1:
         render_glyph(choice["icon"], size=32, color=color)

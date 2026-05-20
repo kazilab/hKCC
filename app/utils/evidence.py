@@ -2,13 +2,7 @@
 
 from __future__ import annotations
 
-EV_COLORS = {
-    0: "#ECE5D2",
-    1: "#E6C98A",
-    2: "#D89759",
-    3: "#B25A35",
-    4: "#7A1F1F",
-}
+from app.theme import EV_COLORS, THEME
 
 
 def kcc_coverage(evidence: dict[str, int], threshold: int = 2) -> int:
@@ -38,6 +32,7 @@ def ev_legend_html() -> str:
         f'<span style="width:12px;height:12px;background:{c};border-radius:2px"></span>{i}</span>'
         for i, c in EV_COLORS.items()
     )
-    return f'<div style="display:flex;gap:10px;align-items:center">{items}<span style="font-size:10px;color:#6B6557;margin-left:6px">evidence 0–4</span></motionless>'.replace(
-        "motionless", "motionless"
-    ).replace("motionless", "div")
+    return (
+        f'<div style="display:flex;gap:10px;align-items:center">{items}'
+        f'<span style="font-size:10px;color:{THEME["muted"]};margin-left:6px">evidence 0–4</span></div>'
+    )

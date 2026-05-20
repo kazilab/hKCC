@@ -10,7 +10,7 @@ from app.data_client import (
     list_kccs,
     list_references_count,
 )
-from app.theme import HKCC_CSS
+from app.theme import HKCC_CSS, THEME
 
 st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
 
@@ -23,7 +23,7 @@ group1 = sum(1 for a in agents if a.get("iarc_group") == "1")
 st.markdown('<span class="mono">Live · hKCC v0.1</span>', unsafe_allow_html=True)
 st.markdown(
     '<h1 class="h-display">A mechanistic atlas for the '
-    '<em style="font-style:italic;color:#8B2E2A">14 key characteristics</em> '
+    f'<em style="font-style:italic;color:{THEME["accent"]}">14 key characteristics</em> '
     "of human carcinogens.</h1>",
     unsafe_allow_html=True,
 )
@@ -70,7 +70,11 @@ for i, k in enumerate(kccs):
         with st.container(border=True):
             c_left, c_right = st.columns([1, 4])
             with c_left:
-                render_glyph(k["icon"], size=22, color="#8B2E2A" if not k["is_extended"] else "#2D5959")
+                render_glyph(
+                    k["icon"],
+                    size=22,
+                    color=THEME["accent"] if not k["is_extended"] else THEME["teal"],
+                )
             with c_right:
                 st.caption(f"{k['n']:02d}")
                 st.markdown(f"**{k['title']}**")
