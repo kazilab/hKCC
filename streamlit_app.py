@@ -1,21 +1,22 @@
-"""hKCC Streamlit entry — sidebar navigation matching mockup left rail."""
+"""hKCC Streamlit entry — custom sidebar + st.navigation fallback."""
 
 from pathlib import Path
 
 import streamlit as st
 
 from api.observability import init_sentry
+from app.components.sidebar import render_sidebar
 from app.data_client import DataSource, data_source_label, get_data_source
-from app.theme import HKCC_CSS
+from app.theme import apply_theme, init_tweak_defaults
 
 init_sentry("streamlit")
+init_tweak_defaults()
 
 APP_ROOT = Path(__file__).resolve().parent
 PAGES_DIR = APP_ROOT / "app" / "pages"
 
 
 def _page(filename: str, **kwargs) -> st.Page | None:
-    """Register a page only if the file exists (avoids Cloud deploy mismatches)."""
     path = PAGES_DIR / filename
     if not path.is_file():
         return None
@@ -29,24 +30,20 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
+apply_theme()
 
 with st.sidebar:
-    st.markdown(
-        '<p class="brand-serif" style="font-size:1.75rem;margin:0">h<span style="color:#C25450">KCC</span></p>'
-        '<p class="mono">Key characteristics</p>',
-        unsafe_allow_html=True,
-    )
-    st.markdown("---")
     if get_data_source() is DataSource.MOCKUP:
         st.info(data_source_label())
     else:
         st.caption(data_source_label())
     st.caption("Data CC-BY 4.0 · Code MIT")
+    render_sidebar()
 
 _page_defs = [
     ("1_Overview.py", dict(title="Overview", icon=":material/home:", default=True)),
     ("2_Browse_KCCs.py", dict(title="Browse KCCs", icon=":material/grid_view:")),
+    ("2a_KCC_Detail.py", dict(title="KCC detail", icon=":material/category:")),
     ("3_Carcinogens.py", dict(title="Carcinogens", icon=":material/biotech:")),
     ("4_Agent_Detail.py", dict(title="Agent profile", icon=":material/person:")),
     ("5_Evidence_Matrix.py", dict(title="Evidence matrix", icon=":material/table_chart:")),
@@ -60,7 +57,7 @@ _page_defs = [
 pages = [p for spec in _page_defs if (p := _page(spec[0], **spec[1])) is not None]
 
 if not pages:
-    st.error(f"No pages found under `{PAGES_DIR}`. Check your deployment includes `app/pages/`.")
+    st.error(f"No pages found under `{PAGES_DIR}`.")
     st.stop()
 
 pg = st.navigation(pages)

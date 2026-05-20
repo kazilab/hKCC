@@ -36,6 +36,9 @@ dev = [
 where = ["."]
 include = ["db*", "api*", "app*", "pipelines*"]
 
+[tool.setuptools.package-data]
+app = ["py.typed"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
