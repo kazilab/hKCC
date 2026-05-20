@@ -16,7 +16,7 @@ st.markdown(f"<style>{HKCC_CSS}</style>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown(
-        '<p class="brand-serif" style="font-size:1.75rem;margin:0">h<span style="color:#8B2E2A">KCC</span></p>'
+        '<p class="brand-serif" style="font-size:1.75rem;margin:0">h<span style="color:#C25450">KCC</span></p>'
         '<p class="mono">Key characteristics</p>',
         unsafe_allow_html=True,
     )

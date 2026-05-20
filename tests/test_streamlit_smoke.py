@@ -20,7 +20,7 @@ def test_streamlit_pages_exist():
 
 
 def test_theme_css_has_accent():
-    from app.theme import HKCC_CSS
+    from app.theme import HKCC_CSS, THEME
 
-    assert "#8B2E2A" in HKCC_CSS
-    assert "Public Sans" in HKCC_CSS
+    assert THEME["accent"] in HKCC_CSS
+    assert "Public+Sans" in HKCC_CSS

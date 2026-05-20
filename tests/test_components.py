@@ -7,7 +7,7 @@ def test_matrix_html_includes_agent():
     rows = [{"id": "benzene", "name": "Benzene", "iarc_group": "1", "scores": {"kcc-01": 4}}]
     html = matrix_heatmap_html(kccs, rows)
     assert "Benzene" in html
-    assert "#7A1F1F" in html  # ev-4 color
+    assert "#D85040" in html  # ev-4 color (dark theme)
 
 
 def test_kcc_coverage():
