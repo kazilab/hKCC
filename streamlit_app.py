@@ -36,6 +36,7 @@ pages = [
     st.Page("app/pages/6_Assays.py", title="Assays", icon=":material/lab_research:"),
     st.Page("app/pages/7_Literature.py", title="Literature", icon=":material/menu_book:"),
     st.Page("app/pages/8_API_Downloads.py", title="API & downloads", icon=":material/api:"),
+    st.Page("app/pages/10_Live_Feeds.py", title="Live feeds", icon=":material/cloud_sync:"),
     st.Page("app/pages/9_About.py", title="About", icon=":material/info:"),
 ]
 

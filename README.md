@@ -47,7 +47,7 @@ pytest
 app/          Streamlit UI
 api/          FastAPI service
 db/           Models, Alembic, seed
-pipelines/    Export + external sync stubs
+pipelines/    Export, external API clients (`pipelines/clients/`), batch stubs
 infra/        Docker Compose, deploy guide
 tests/        pytest
 docs/         Scope & architecture notes
@@ -67,4 +67,4 @@ Exports land in `exports/<tag>/` (CSV, JSON manifest, Parquet). Archive to Zenod
 - [x] Evidence matrix heatmap (`st.components.html`)
 - [x] Agent radar plot (`st.components.html`)
 - [ ] ORCID curator UI (v2)
-- [ ] Live PubChem / ToxCast / OpenAlex pipelines
+- [x] Live feed UI (PubChem, PubChem assay summary / screening bridge, OpenAlex, CompTox links + optional CCTE key)
