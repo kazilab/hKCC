@@ -1,9 +1,23 @@
 """hKCC Streamlit entry — sidebar navigation matching mockup left rail."""
 
+from pathlib import Path
+
 import streamlit as st
 
 from app.data_client import DataSource, data_source_label, get_data_source
 from app.theme import HKCC_CSS
+
+APP_ROOT = Path(__file__).resolve().parent
+PAGES_DIR = APP_ROOT / "app" / "pages"
+
+
+def _page(filename: str, **kwargs) -> st.Page | None:
+    """Register a page only if the file exists (avoids Cloud deploy mismatches)."""
+    path = PAGES_DIR / filename
+    if not path.is_file():
+        return None
+    return st.Page(str(path), **kwargs)
+
 
 st.set_page_config(
     page_title="hKCC",
@@ -27,18 +41,24 @@ with st.sidebar:
         st.caption(data_source_label())
     st.caption("Data CC-BY 4.0 · Code MIT")
 
-pages = [
-    st.Page("app/pages/1_Overview.py", title="Overview", icon=":material/home:", default=True),
-    st.Page("app/pages/2_Browse_KCCs.py", title="Browse KCCs", icon=":material/grid_view:"),
-    st.Page("app/pages/3_Carcinogens.py", title="Carcinogens", icon=":material/biotech:"),
-    st.Page("app/pages/4_Agent_Detail.py", title="Agent profile", icon=":material/person:"),
-    st.Page("app/pages/5_Evidence_Matrix.py", title="Evidence matrix", icon=":material/table_chart:"),
-    st.Page("app/pages/6_Assays.py", title="Assays", icon=":material/lab_research:"),
-    st.Page("app/pages/7_Literature.py", title="Literature", icon=":material/menu_book:"),
-    st.Page("app/pages/8_API_Downloads.py", title="API & downloads", icon=":material/api:"),
-    st.Page("app/pages/10_Live_Feeds.py", title="Live feeds", icon=":material/cloud_sync:"),
-    st.Page("app/pages/9_About.py", title="About", icon=":material/info:"),
+_page_defs = [
+    ("1_Overview.py", dict(title="Overview", icon=":material/home:", default=True)),
+    ("2_Browse_KCCs.py", dict(title="Browse KCCs", icon=":material/grid_view:")),
+    ("3_Carcinogens.py", dict(title="Carcinogens", icon=":material/biotech:")),
+    ("4_Agent_Detail.py", dict(title="Agent profile", icon=":material/person:")),
+    ("5_Evidence_Matrix.py", dict(title="Evidence matrix", icon=":material/table_chart:")),
+    ("6_Assays.py", dict(title="Assays", icon=":material/lab_research:")),
+    ("7_Literature.py", dict(title="Literature", icon=":material/menu_book:")),
+    ("8_API_Downloads.py", dict(title="API & downloads", icon=":material/api:")),
+    ("10_live_feeds.py", dict(title="Live feeds", icon=":material/sync:")),
+    ("9_About.py", dict(title="About", icon=":material/info:")),
 ]
+
+pages = [p for spec in _page_defs if (p := _page(spec[0], **spec[1])) is not None]
+
+if not pages:
+    st.error(f"No pages found under `{PAGES_DIR}`. Check your deployment includes `app/pages/`.")
+    st.stop()
 
 pg = st.navigation(pages)
 pg.run()
