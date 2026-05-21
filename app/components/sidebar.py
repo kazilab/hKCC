@@ -29,7 +29,6 @@ _NAV: list[tuple[str | None, str, str | None, str | None]] = [
     ("literature", "Literature", "app/pages/7_Literature.py", "literature"),
     (None, "Build", None, None),
     ("api", "Data & API", "app/pages/8_API_Downloads.py", None),
-    ("live_feeds", "Live feeds", "app/pages/10_live_feeds.py", None),
     ("about", "About hKCC", "app/pages/9_About.py", None),
 ]
 

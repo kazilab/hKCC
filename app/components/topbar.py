@@ -54,4 +54,3 @@ def render_topbar(page_key: str) -> None:
         st.caption("⌘K — global search (stub)")
         if new_q != search_val:
             st.query_params["q"] = new_q
-            st.rerun()
