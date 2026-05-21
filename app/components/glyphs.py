@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit.components.v1 as components
 
-from app.theme import THEME
+from app import theme
 
 GLYPH_PATHS = {
     "circle": '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/>',
@@ -24,7 +24,8 @@ GLYPH_PATHS = {
 }
 
 
-def kcc_glyph_html(kind: str, *, size: int = 24, color: str = THEME["accent"]) -> str:
+def kcc_glyph_html(kind: str, *, size: int = 24, color: str | None = None) -> str:
+    color = color or theme.THEME["accent"]
     inner = GLYPH_PATHS.get(kind, GLYPH_PATHS["circle"])
     return f"""
     <svg width="{size}" height="{size}" viewBox="0 0 24 24" style="color:{color}">
@@ -33,5 +34,5 @@ def kcc_glyph_html(kind: str, *, size: int = 24, color: str = THEME["accent"]) -
     """
 
 
-def render_glyph(kind: str, size: int = 24, color: str = THEME["accent"]) -> None:
+def render_glyph(kind: str, size: int = 24, color: str | None = None) -> None:
     components.html(kcc_glyph_html(kind, size=size, color=color), height=size + 8)

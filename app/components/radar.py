@@ -6,12 +6,6 @@ import math
 
 import streamlit.components.v1 as components
 
-from app.theme import THEME
-
-ACCENT = THEME["accent"]
-RULE = THEME["rule"]
-MUTED = THEME["muted"]
-
 
 def radar_plot_html(
     kccs: list[dict],
@@ -19,6 +13,11 @@ def radar_plot_html(
     *,
     width: int = 360,
 ) -> str:
+    from app.theme import THEME
+
+    accent = THEME["accent"]
+    rule = THEME["rule"]
+    muted = THEME["muted"]
     n = len(kccs)
     cx, cy, r = 180, 180, 140
     pts = []
@@ -37,25 +36,25 @@ def radar_plot_html(
             }
         )
     rings = "".join(
-        f'<circle cx="{cx}" cy="{cy}" r="{r * frac}" fill="none" stroke="{RULE}" stroke-width="1"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r * frac}" fill="none" stroke="{rule}" stroke-width="1"/>'
         for frac in (1, 0.75, 0.5, 0.25)
     )
     spokes = "".join(
-        f'<line x1="{cx}" y1="{cy}" x2="{p["ax"]:.1f}" y2="{p["ay"]:.1f}" stroke="{RULE}" stroke-width="1"/>'
+        f'<line x1="{cx}" y1="{cy}" x2="{p["ax"]:.1f}" y2="{p["ay"]:.1f}" stroke="{rule}" stroke-width="1"/>'
         for p in pts
     )
     poly = " ".join(f'{p["x"]:.1f},{p["y"]:.1f}' for p in pts)
-    dots = "".join(f'<circle cx="{p["x"]:.1f}" cy="{p["y"]:.1f}" r="3" fill="{ACCENT}"/>' for p in pts)
+    dots = "".join(f'<circle cx="{p["x"]:.1f}" cy="{p["y"]:.1f}" r="3" fill="{accent}"/>' for p in pts)
     labels = "".join(
         f'<text x="{p["label_x"]:.1f}" y="{p["label_y"]:.1f}" font-size="9.5" '
-        f'font-family="JetBrains Mono,monospace" fill="{MUTED}" text-anchor="middle" '
+        f'font-family="JetBrains Mono,monospace" fill="{muted}" text-anchor="middle" '
         f'dominant-baseline="middle">{p["n"]:02d}</text>'
         for p in pts
     )
     return f"""
     <svg viewBox="0 0 360 360" width="100%" style="max-width:{width}px;display:block;background:transparent">
       {rings}{spokes}
-      <polygon points="{poly}" fill="{ACCENT}" fill-opacity="0.22" stroke="{ACCENT}" stroke-width="1.5"/>
+      <polygon points="{poly}" fill="{accent}" fill-opacity="0.22" stroke="{accent}" stroke-width="1.5"/>
       {dots}{labels}
     </svg>
     """

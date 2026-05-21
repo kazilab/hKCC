@@ -4,7 +4,7 @@ import streamlit as st
 
 from app.components.glyphs import render_glyph
 from app.data_client import kcc_stats, list_kccs
-from app.page_shell import init_page
+from app.page_shell import global_search_query, init_page
 
 THEME, _ = init_page("kccs")
 
@@ -14,12 +14,24 @@ if st.query_params.get("kcc_id"):
 
 kccs = list_kccs()
 stats = kcc_stats()
+q_default = global_search_query()
 
 st.markdown('<p class="mono">The framework</p>', unsafe_allow_html=True)
 st.markdown('<h1 class="h-display" style="font-size:2rem">The 14 key characteristics</h1>', unsafe_allow_html=True)
 st.caption(
     "Each KCC describes a distinct biological process consistently observed in established carcinogens."
 )
+
+q = st.text_input(
+    "Search KCCs",
+    value=q_default,
+    placeholder="Search title, short label, mechanism…",
+    label_visibility="collapsed",
+    key="kcc_search",
+)
+if q != q_default:
+    st.query_params["q"] = q
+    st.rerun()
 
 filter_set = st.radio(
     "Filter",
@@ -33,6 +45,21 @@ elif filter_set == "New additions (4)":
     filtered = [k for k in kccs if k["is_extended"]]
 else:
     filtered = kccs
+
+if q:
+    ql = q.lower()
+    filtered = [
+        k
+        for k in filtered
+        if ql in k["title"].lower()
+        or ql in k["short"].lower()
+        or ql in k.get("description", "").lower()
+        or ql in k.get("mechanism", "").lower()
+    ]
+
+if not filtered:
+    st.info("No KCCs match the current filters.")
+    st.stop()
 
 view = st.radio("View", ["Grid", "List"], horizontal=True, label_visibility="collapsed")
 

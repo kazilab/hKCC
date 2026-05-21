@@ -13,7 +13,7 @@ from app.data_client import (
     list_references,
     list_references_count,
 )
-from app.page_shell import init_page
+from app.page_shell import global_search_query, init_page
 from app.utils.evidence import ev_legend_html, fingerprint_html, kcc_coverage, total_evidence
 
 THEME, _ = init_page("overview")
@@ -22,6 +22,7 @@ kccs = list_kccs()
 agents = list_agents()
 stats = kcc_stats()
 group1 = sum(1 for a in agents if a.get("iarc_group") == "1")
+search_q = global_search_query().strip().lower()
 
 st.markdown('<span class="mono">Live · hKCC</span>', unsafe_allow_html=True)
 st.markdown(
@@ -67,8 +68,19 @@ for col, (val, label) in zip(
 st.markdown("---")
 st.markdown('<p class="eyebrow">The framework</p>', unsafe_allow_html=True)
 st.markdown("#### Fourteen key characteristics")
+if search_q:
+    st.caption(f"Filtering overview highlights by `{search_q}`.")
+preview_kccs = [
+    k
+    for k in kccs
+    if not search_q
+    or search_q in k["title"].lower()
+    or search_q in k["short"].lower()
+    or search_q in k.get("description", "").lower()
+    or search_q in k.get("mechanism", "").lower()
+]
 cols = st.columns(4)
-for i, k in enumerate(kccs):
+for i, k in enumerate(preview_kccs):
     s = stats.get(k["id"], {"carc_count": 0, "assay_count": 0})
     with cols[i % 4]:
         with st.container(border=True):
@@ -88,6 +100,8 @@ for i, k in enumerate(kccs):
                 if st.button("Open", key=f"ov_kcc_{k['id']}", use_container_width=True):
                     st.query_params["kcc_id"] = k["id"]
                     st.switch_page("app/pages/2a_KCC_Detail.py")
+if not preview_kccs:
+    st.caption("No KCCs match the current search.")
 
 st.markdown("---")
 
@@ -99,10 +113,26 @@ shorts = [k["short"] for k in kccs]
 
 st.markdown('<p class="eyebrow">Featured</p>', unsafe_allow_html=True)
 st.markdown("#### Most-queried agents this week")
+featured_ids = []
 for fid in FEATURED:
     a = by_id.get(fid)
     if not a:
         continue
+    hay = " ".join(
+        [
+            a.get("name", ""),
+            a.get("cas", ""),
+            a.get("agent_type", ""),
+            a.get("iarc_group", ""),
+            " ".join(a.get("sites", [])),
+        ]
+    ).lower()
+    if search_q and search_q not in hay:
+        continue
+    featured_ids.append(fid)
+
+for fid in featured_ids:
+    a = by_id[fid]
     ev = a.get("evidence", {})
     if isinstance(ev, list):
         ev = {e["kcc_id"]: e["score"] for e in ev}
@@ -123,11 +153,28 @@ for fid in FEATURED:
         if st.button(f"View {a['name']} →", key=f"feat_{fid}"):
             st.query_params["agent_id"] = fid
             st.switch_page("app/pages/4_Agent_Detail.py")
+if not featured_ids:
+    st.caption("No featured agents match the current search.")
 
 st.markdown("---")
 
 # Recent literature
-refs = list_references()[:5]
+refs_all = list_references()
+if search_q:
+    refs_all = [
+        r
+        for r in refs_all
+        if search_q
+        in " ".join(
+            [
+                r.get("title", ""),
+                r.get("authors", ""),
+                r.get("journal", ""),
+                " ".join(r.get("tags", [])),
+            ]
+        ).lower()
+    ]
+refs = refs_all[:5]
 st.markdown('<p class="eyebrow">Recent</p>', unsafe_allow_html=True)
 st.markdown("#### Methodology & literature")
 for ref in refs:
@@ -142,6 +189,8 @@ for ref in refs:
         st.caption(f"{ref['authors']} — _{ref['journal']}_")
         if st.button("Open literature", key=f"ref_{ref['id']}"):
             st.switch_page("app/pages/7_Literature.py")
+if not refs:
+    st.caption("No recent literature matches the current search.")
 
 st.markdown("---")
 

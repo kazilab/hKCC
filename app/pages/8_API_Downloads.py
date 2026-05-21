@@ -1,9 +1,12 @@
 """Data & API — mockup screen 9."""
 
+import base64
+import html
 from pathlib import Path
 
 import httpx
 import streamlit as st
+import streamlit.components.v1 as components
 
 from app.data.api_samples import AUTH_TIERS, ENDPOINTS, QUICKSTART
 from app.data_client import api_base_url
@@ -17,6 +20,39 @@ base = api_base_url()
 release = get_settings().hkcc_release_tag
 export_dir = Path(__file__).resolve().parents[2] / "exports" / release
 
+
+def _copyable_code(
+    code: str,
+    *,
+    label: str,
+    button_label: str = "Copy",
+    dark: bool = False,
+    height: int | None = None,
+) -> None:
+    bg = THEME["ink"] if dark else THEME["paper2"]
+    fg = THEME["paper"] if dark else THEME["ink2"]
+    head_bg = THEME["ink2"] if dark else THEME["paper3"]
+    rule = THEME["rule"]
+    accent = THEME["accent"]
+    code_b64 = base64.b64encode(code.encode("utf-8")).decode("ascii")
+    escaped = html.escape(code)
+    h = height or min(520, 96 + len(code.splitlines()) * 22)
+    components.html(
+        f"""
+        <div style="border:1px solid {rule};border-radius:4px;overflow:hidden;background:{bg};font-family:Public Sans,sans-serif">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:{head_bg};border-bottom:1px solid {rule}">
+            <span style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:{fg}">{html.escape(label)}</span>
+            <button data-code="{code_b64}" onclick='navigator.clipboard.writeText(atob(this.dataset.code)); this.textContent="Copied"; setTimeout(() => this.textContent="{html.escape(button_label)}", 1200);'
+              style="border:0;background:transparent;color:{accent};font-family:JetBrains Mono,monospace;font-size:10px;cursor:pointer">{html.escape(button_label)}</button>
+          </div>
+          <pre style="margin:0;padding:16px;max-height:420px;overflow:auto;background:{bg};color:{fg};font-family:JetBrains Mono,ui-monospace,monospace;font-size:11.5px;line-height:1.6;white-space:pre-wrap">{escaped}</pre>
+        </div>
+        """,
+        height=h,
+        scrolling=True,
+    )
+
+
 st.markdown('<p class="mono">Build</p>', unsafe_allow_html=True)
 st.markdown('<h1 class="h-display" style="font-size:2rem">Data & API</h1>', unsafe_allow_html=True)
 st.caption(
@@ -29,9 +65,9 @@ with tab_api:
     st.markdown("#### Dataset downloads")
     dl_cols = st.columns(3)
     formats = [
-        ("CSV", "kccs.csv", "Curated KCCs, agents, and evidence tables."),
-        ("JSON", "manifest.json", "Release manifest and file index."),
-        ("Parquet", "kccs.parquet", "Columnar format for pandas / DuckDB."),
+        ("CSV", f"hkcc-{release}.csv.zip", "Curated KCCs, agents, and evidence tables."),
+        ("JSON", f"hkcc-{release}.json", "Full normalized dataset with provenance metadata."),
+        ("Parquet", f"hkcc-{release}.parquet.zip", "Columnar format for pandas / DuckDB."),
     ]
     for col, (fmt, fname, desc) in zip(dl_cols, formats):
         fpath = export_dir / fname
@@ -48,7 +84,7 @@ with tab_api:
                     st.download_button(
                         f"↓ {fmt}",
                         fpath.read_bytes(),
-                        file_name=f"hkcc-{release}-{fname}",
+                        file_name=fname,
                         key=f"dl_{fmt}",
                     )
                 else:
@@ -81,8 +117,8 @@ with tab_api:
     with right:
         ep = ENDPOINTS[st.session_state["api_endpoint"]]
         st.markdown(f"#### {ep['method']} `{ep['path']}`")
-        st.code(ep["sample"], language="json")
-        st.code(f"{base}{ep['path']}", language="text")
+        _copyable_code(ep["sample"], label="Sample response", dark=True)
+        _copyable_code(f"{base}{ep['path']}", label="Request URL", height=96)
         if st.button("Try live request"):
             try:
                 if ep["method"] == "POST":
@@ -115,8 +151,7 @@ with tab_api:
     sn_cols = st.columns(2)
     for col, (lang, code) in zip(sn_cols, QUICKSTART.items()):
         with col:
-            st.markdown(f"**{lang}**")
-            st.code(code, language="python" if lang == "Python" else "r")
+            _copyable_code(code, label=lang, button_label="Copy ↗", height=260)
 
     st.markdown("---")
     c1, c2 = st.columns(2)

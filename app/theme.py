@@ -245,14 +245,15 @@ iframe {{ background: var(--paper-2) !important; }}
 """
 
 
-def get_theme(name: str) -> tuple[dict[str, str], dict[int, str], str]:
+def get_theme(name: str) -> tuple[dict[str, str], str, dict[int, str]]:
     if name == "dark":
         t = DARK_THEME
         ev = DARK_EV
     else:
         t = PAPER_THEME
         ev = PAPER_EV
-    return t, ev, _build_css(t)
+    theme = dict(t)
+    return theme, _build_css(theme), dict(ev)
 
 
 def resolve_theme() -> str:
@@ -269,11 +270,14 @@ def apply_theme(*, inject: bool = True) -> tuple[dict[str, str], dict[int, str]]
     global THEME, EV_COLORS, HKCC_CSS
     init_tweak_defaults()
     name = resolve_theme()
-    base_theme, ev, css = get_theme(name)
+    base_theme, _, ev = get_theme(name)
     theme = _apply_tweak_overrides(base_theme)
+    css = _build_css(theme)
     css = css + _tweak_extra_css()
-    THEME = theme
-    EV_COLORS = ev
+    THEME.clear()
+    THEME.update(theme)
+    EV_COLORS.clear()
+    EV_COLORS.update(ev)
     HKCC_CSS = css
     if inject:
         st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)

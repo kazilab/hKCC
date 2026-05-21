@@ -33,6 +33,9 @@ with st.container(border=True):
     c1, c2, c3, c4 = st.columns([2, 2, 1, 2])
     with c1:
         q = st.text_input("Search", value=q_default, placeholder="Name, CAS, type…", label_visibility="collapsed")
+        if q != q_default:
+            st.query_params["q"] = q
+            st.rerun()
     with c2:
         group = st.selectbox(
             "IARC group",

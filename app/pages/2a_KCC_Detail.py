@@ -58,7 +58,7 @@ with head_r:
 
 stats = kcc_stats()
 s = stats.get(k["id"], {"carc_count": 0, "assay_count": 0})
-linked = agents_for_kcc(kcc_id, min_score=1)
+linked = agents_for_kcc(kcc_id, min_score=2)
 rel_assays = assays_for_kcc(kcc_id)
 rel_refs = references_for_kcc(kcc_id)
 examples = k.get("examples", [])
@@ -90,19 +90,7 @@ with mech_r:
         st.caption("No example list in the curated release.")
 
 st.markdown("---")
-st.markdown(f"#### Mapped assays ({len(rel_assays)})")
-if rel_assays:
-    for a in rel_assays:
-        with st.container(border=True):
-            st.markdown(f"**{a['name']}**")
-            st.caption(f"{a['type']} · {a['target']} · {a['throughput']}")
-            if a.get("oecd_tg") and a["oecd_tg"] != "—":
-                st.caption(a["oecd_tg"])
-else:
-    st.caption("No assays mapped to this KCC yet.")
-
-st.markdown("---")
-st.markdown(f"#### Top agents with evidence for {k['short']} ({len(linked)})")
+st.markdown(f"#### Linked carcinogens with evidence ≥ 2 for {k['short']} ({len(linked)})")
 if linked:
     for row in linked:
         with st.container(border=True):
@@ -118,7 +106,19 @@ if linked:
                     st.query_params["agent_id"] = row["id"]
                     st.switch_page("app/pages/4_Agent_Detail.py")
 else:
-    st.caption("No agents with evidence ≥ 1 on this KCC.")
+    st.caption("No agents with evidence ≥ 2 on this KCC.")
+
+st.markdown("---")
+st.markdown(f"#### Key assays ({len(rel_assays)})")
+if rel_assays:
+    for a in rel_assays:
+        with st.container(border=True):
+            st.markdown(f"**{a['name']}**")
+            st.caption(f"{a['type']} · {a['target']} · {a['throughput']}")
+            if a.get("oecd_tg") and a["oecd_tg"] != "—":
+                st.caption(a["oecd_tg"])
+else:
+    st.caption("No assays mapped to this KCC yet.")
 
 st.markdown("---")
 st.markdown(f"#### Anchoring publications ({len(rel_refs)})")
