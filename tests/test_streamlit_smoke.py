@@ -24,6 +24,6 @@ def test_theme_css_has_accent():
     from app.theme import apply_theme
 
     theme, _ = apply_theme(inject=False)
-    _, _, css = __import__("app.theme", fromlist=["get_theme"]).get_theme("paper")
+    _, css, _ = __import__("app.theme", fromlist=["get_theme"]).get_theme("paper")
     assert theme["accent"] == "#8B2E2A"
     assert "Public+Sans" in css
