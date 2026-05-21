@@ -98,6 +98,7 @@ for i, k in enumerate(preview_kccs):
                 if k["is_extended"]:
                     st.caption("New addition")
                 if st.button("Open", key=f"ov_kcc_{k['id']}", use_container_width=True):
+                    st.session_state["kcc_id"] = k["id"]
                     st.query_params["kcc_id"] = k["id"]
                     st.switch_page("app/pages/2a_KCC_Detail.py")
 if not preview_kccs:
@@ -151,6 +152,7 @@ for fid in featured_ids:
         with c3:
             components.html(fingerprint_html(scores, shorts), height=24)
         if st.button(f"View {a['name']} →", key=f"feat_{fid}"):
+            st.session_state["agent_id"] = fid
             st.query_params["agent_id"] = fid
             st.switch_page("app/pages/4_Agent_Detail.py")
 if not featured_ids:

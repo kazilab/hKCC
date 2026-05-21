@@ -81,6 +81,7 @@ if view == "Grid":
                     if k["is_extended"]:
                         st.caption("Extended set")
                     if st.button("Open detail →", key=f"kcc_open_{k['id']}", use_container_width=True):
+                        st.session_state["kcc_id"] = k["id"]
                         st.query_params["kcc_id"] = k["id"]
                         st.switch_page("app/pages/2a_KCC_Detail.py")
 else:
@@ -104,5 +105,6 @@ else:
         format_func=lambda k: f"KCC-{k['n']:02d}: {k['title']}",
     )
     if pick and st.button("View KCC detail →", type="primary"):
+        st.session_state["kcc_id"] = pick["id"]
         st.query_params["kcc_id"] = pick["id"]
         st.switch_page("app/pages/2a_KCC_Detail.py")

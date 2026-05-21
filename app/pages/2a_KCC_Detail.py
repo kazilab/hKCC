@@ -103,6 +103,7 @@ if linked:
                 components.html(ev_bar_html(row["kcc_score"]), height=28)
             with c3:
                 if st.button("Profile →", key=f"kcc_agent_{row['id']}"):
+                    st.session_state["agent_id"] = row["id"]
                     st.query_params["agent_id"] = row["id"]
                     st.switch_page("app/pages/4_Agent_Detail.py")
 else:
