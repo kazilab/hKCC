@@ -40,6 +40,9 @@ with st.sidebar:
     st.caption("Data CC-BY 4.0 · Code MIT")
     render_sidebar()
 
+# Detail pages (2a_KCC_Detail, 4_Agent_Detail) must stay registered so
+# st.switch_page() can target them from list pages. They are hidden from
+# the rail by the stSidebarNav CSS rule in app/theme.py.
 _page_defs = [
     ("1_Overview.py", dict(title="Overview", icon=":material/home:", default=True)),
     ("2_Browse_KCCs.py", dict(title="Browse KCCs", icon=":material/grid_view:")),
@@ -50,7 +53,6 @@ _page_defs = [
     ("6_Assays.py", dict(title="Assays", icon=":material/lab_research:")),
     ("7_Literature.py", dict(title="Literature", icon=":material/menu_book:")),
     ("8_API_Downloads.py", dict(title="API & downloads", icon=":material/api:")),
-    ("10_live_feeds.py", dict(title="Live feeds", icon=":material/sync:")),
     ("9_About.py", dict(title="About", icon=":material/info:")),
 ]
 
