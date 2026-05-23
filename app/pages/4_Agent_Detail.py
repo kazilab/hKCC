@@ -44,10 +44,14 @@ n_refs = sum(e["n_refs"] for e in evidence_rows)
 if st.button("← All agents"):
     st.switch_page("app/pages/3_Carcinogens.py")
 
-st.caption(
-    f"{agent.get('iarc_group', '—')} · {agent['agent_type']}"
-    + (f" · CAS {agent['cas']}" if agent.get("cas") not in (None, "—") else "")
-)
+caption_parts = [agent.get("iarc_group", "—") or "—", agent["agent_type"]]
+if agent.get("cas") not in (None, "—"):
+    caption_parts.append(f"CAS {agent['cas']}")
+if agent.get("monograph_volume"):
+    caption_parts.append(f"Monograph Vol. {agent['monograph_volume']}")
+if agent.get("evaluation_year"):
+    caption_parts.append(f"Evaluated {agent['evaluation_year']}")
+st.caption(" · ".join(str(p) for p in caption_parts if p))
 st.markdown(f'<h1 class="h-display">{agent["name"]}</h1>', unsafe_allow_html=True)
 st.markdown(f'<p class="lede">{agent["summary"]}</p>', unsafe_allow_html=True)
 

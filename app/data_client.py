@@ -21,6 +21,8 @@ from db.models import (
     AssayAnnotation,
     AssayKCC,
     Evidence,
+    KcadAbbreviation,
+    KcadColumnDefinition,
     Reference,
 )
 from db.session import SessionLocal
@@ -148,6 +150,10 @@ def list_agents() -> list[dict]:
                 "agent_type": a.agent_type,
                 "summary": a.summary,
                 "sites": [s.site for s in a.sites],
+                "monograph_volume": a.monograph_volume,
+                "monograph_pub_year": a.monograph_pub_year,
+                "evaluation_year": a.evaluation_year,
+                "source_ref_id": a.source_ref_id,
             }
             for a in rows
         ]
@@ -363,11 +369,20 @@ def list_assays() -> list[dict]:
         return [{**a, "source": "mockup", "granularity": "assay"} for a in _mock()["assays"]]
     db = SessionLocal()
     try:
-        rows = db.scalars(select(Assay).options(selectinload(Assay.kcc_links)).order_by(Assay.name)).all()
+        rows = db.scalars(
+            select(Assay)
+            .options(
+                selectinload(Assay.kcc_links),
+                selectinload(Assay.kc_subgroups),
+                selectinload(Assay.study_designs),
+            )
+            .order_by(Assay.name)
+        ).all()
         return [
             {
                 "id": a.id,
                 "name": a.name,
+                "name_alt": a.name_alt,
                 "type": a.type,
                 "target": a.target,
                 "throughput": a.throughput,
@@ -375,7 +390,16 @@ def list_assays() -> list[dict]:
                 "notes": a.notes or "",
                 "source": a.source,
                 "granularity": a.granularity,
+                "source_ref_id": a.source_ref_id,
                 "kcc_ids": [link.kcc_id for link in a.kcc_links],
+                "subgroups": [
+                    {"kcc_id": sg.kcc_id, "subgroup": sg.subgroup}
+                    for sg in a.kc_subgroups
+                ],
+                "study_designs": [
+                    {"kcc_id": sd.kcc_id, "design": sd.design, "source": sd.source}
+                    for sd in a.study_designs
+                ],
             }
             for a in rows
         ]
@@ -408,6 +432,8 @@ def list_references() -> list[dict]:
                 "pmid": r.pmid,
                 "citations": r.citations or 0,
                 "source": r.source,
+                "article_id": r.article_id,
+                "url": r.url,
                 "tags": [t.tag for t in r.tags],
                 "kcc_ids": [lk.kcc_id for lk in r.kcc_links],
             }
@@ -481,17 +507,33 @@ def annotations_for_assay(assay_id: str, *, limit: int = 50) -> list[dict]:
                 "id": a.id,
                 "kcc_id": a.kcc_id,
                 "secondary_kcc_id": a.secondary_kcc_id,
+                "secondary_kc_raw": a.secondary_kc_raw,
                 "reference_id": a.reference_id,
                 "agent_id": a.agent_id,
                 "kc_subgroup": a.kc_subgroup,
+                "kc_subgroup2": a.kc_subgroup2,
+                "effect": a.effect,
                 "assay_endpoint": a.assay_endpoint,
+                "assay_endpoint2": a.assay_endpoint2,
+                "assay_endpoint3": a.assay_endpoint3,
+                "biomarker": a.biomarker,
+                "method2": a.method2,
+                "stimulant_activation_agent": a.stimulant_activation_agent,
+                "target_cell": a.target_cell,
                 "organism": a.organism,
+                "species": a.species,
+                "mammalian": a.mammalian,
                 "tissue": a.tissue,
+                "tissue2": a.tissue2,
+                "cell_type": a.cell_type,
+                "immortalized": a.immortalized,
                 "cell_format": a.cell_format,
                 "design": a.design,
+                "design_transgenic": a.design_transgenic,
                 "monograph_num": a.monograph_num,
                 "monograph_chem": a.monograph_chem,
                 "oecd_tg": a.oecd_tg,
+                "cebp_ref_idx": a.cebp_ref_idx,
             }
             for a in rows
         ]
@@ -505,6 +547,97 @@ def list_assays_count() -> int:
 
 def list_references_count() -> int:
     return len(list_references())
+
+
+def list_abbreviations() -> list[dict]:
+    """KCAD abbreviation glossary (STable3)."""
+    src = get_data_source()
+    if src is DataSource.MOCKUP:
+        return []
+    if src is DataSource.API:
+        try:
+            return _get("/methodology/abbreviations")
+        except httpx.HTTPError:
+            return []
+    db = SessionLocal()
+    try:
+        rows = db.scalars(
+            select(KcadAbbreviation).order_by(KcadAbbreviation.abbreviation)
+        ).all()
+        return [
+            {"abbreviation": r.abbreviation, "expansion": r.expansion}
+            for r in rows
+        ]
+    finally:
+        db.close()
+
+
+def list_column_definitions() -> list[dict]:
+    """KCAD column data dictionary (STable2)."""
+    src = get_data_source()
+    if src is DataSource.MOCKUP:
+        return []
+    if src is DataSource.API:
+        try:
+            return _get("/methodology/columns")
+        except httpx.HTTPError:
+            return []
+    db = SessionLocal()
+    try:
+        rows = db.scalars(
+            select(KcadColumnDefinition).order_by(KcadColumnDefinition.column_name)
+        ).all()
+        return [
+            {"column_name": r.column_name, "definition": r.definition}
+            for r in rows
+        ]
+    finally:
+        db.close()
+
+
+def get_source_paper() -> dict | None:
+    """The KCAD source publication (Rigutto et al. 2025) as a Reference row.
+
+    Returns a hard-coded fallback in mockup mode so the citation card still
+    renders without a DB.
+    """
+    src = get_data_source()
+    if src is DataSource.API:
+        try:
+            return _get("/methodology/source")
+        except httpx.HTTPError:
+            return None
+    if src is DataSource.DATABASE:
+        db = SessionLocal()
+        try:
+            paper = db.get(Reference, "kcad-paper-rigutto-2025")
+            if paper is None:
+                return None
+            return {
+                "id": paper.id,
+                "year": paper.year,
+                "authors": paper.authors,
+                "title": paper.title,
+                "journal": paper.journal,
+                "vol": paper.vol,
+                "doi": paper.doi,
+                "article_id": paper.article_id,
+                "url": paper.url,
+            }
+        finally:
+            db.close()
+    # MOCKUP fallback — embedded citation.
+    return {
+        "id": "kcad-paper-rigutto-2025",
+        "year": 2025,
+        "authors": "Rigutto G, McHale CM, Singam ERA, Rana I, Zhang L, Smith MT",
+        "title": "Mapping assays to the key characteristics of carcinogens to support decision-making",
+        "journal": "Database (Oxford)",
+        "vol": "2025",
+        "doi": "10.1093/database/baaf026",
+        "article_id": "baaf026",
+        "url": "https://doi.org/10.1093/database/baaf026",
+    }
 
 
 def api_base_url() -> str:

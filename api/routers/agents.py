@@ -21,6 +21,10 @@ def _agent_out(agent: Agent) -> AgentOut:
         summary=agent.summary,
         last_review=agent.last_review,
         sites=[s.site for s in agent.sites],
+        monograph_volume=agent.monograph_volume,
+        monograph_pub_year=agent.monograph_pub_year,
+        evaluation_year=agent.evaluation_year,
+        source_ref_id=agent.source_ref_id,
     )
 
 
@@ -104,6 +108,8 @@ def list_agent_references(agent_id: str, db: Session = Depends(get_db)) -> list[
             pmid=r.pmid,
             citations=r.citations,
             source=r.source,
+            article_id=r.article_id,
+            url=r.url,
             tags=[t.tag for t in r.tags],
             kcc_ids=[lk.kcc_id for lk in r.kcc_links],
         )

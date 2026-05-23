@@ -47,6 +47,14 @@ class Agent(Base):
     agent_type: Mapped[str] = mapped_column(String(128), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     last_review: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # KCAD/IARC extensions populated from KCManuscript_STable1.xlsx.
+    monograph_volume: Mapped[str | None] = mapped_column(String(64))
+    monograph_pub_year: Mapped[str | None] = mapped_column(String(32))
+    evaluation_year: Mapped[int | None] = mapped_column(SmallInteger)
+    # FK to the publication this row was sourced from (Rigutto et al. 2025 for KCAD rows).
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL"), index=True
+    )
 
     sites: Mapped[list["AgentSite"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
     evidence_rows: Mapped[list["Evidence"]] = relationship(back_populates="agent", cascade="all, delete-orphan")
@@ -117,9 +125,22 @@ class Assay(Base):
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="mockup", server_default="mockup")
     # "assay" for concrete methods; "category" for KCAD coarse method labels that curators may later split.
     granularity: Mapped[str] = mapped_column(String(16), nullable=False, default="assay", server_default="assay")
+    # FK to the publication this assay was sourced from (Rigutto et al. 2025 for KCAD rows).
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL"), index=True
+    )
+    # Cleaned/canonical alternative spelling of `name` (preserves search compatibility
+    # when STable4/5 imports rewrite the primary name to its proper punctuation).
+    name_alt: Mapped[str | None] = mapped_column(String(255))
 
     kcc_links: Mapped[list["AssayKCC"]] = relationship(back_populates="assay", cascade="all, delete-orphan")
     annotations: Mapped[list["AssayAnnotation"]] = relationship(
+        back_populates="assay", cascade="all, delete-orphan"
+    )
+    kc_subgroups: Mapped[list["AssayKcSubgroup"]] = relationship(
+        back_populates="assay", cascade="all, delete-orphan"
+    )
+    study_designs: Mapped[list["AssayStudyDesign"]] = relationship(
         back_populates="assay", cascade="all, delete-orphan"
     )
 
@@ -147,6 +168,10 @@ class Reference(Base):
     pmid: Mapped[str | None] = mapped_column(String(16))
     citations: Mapped[int | None] = mapped_column(Integer)
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="mockup", server_default="mockup")
+    # OUP / journal-specific article identifier (e.g. "baaf026" for the KCAD paper).
+    article_id: Mapped[str | None] = mapped_column(String(64))
+    # Optional URL pointing to the canonical hosted version (DOI page, journal PDF, etc.).
+    url: Mapped[str | None] = mapped_column(String(512))
 
     tags: Mapped[list["ReferenceTag"]] = relationship(back_populates="reference", cascade="all, delete-orphan")
     kcc_links: Mapped[list["ReferenceKCC"]] = relationship(
@@ -252,23 +277,119 @@ class AssayAnnotation(Base):
     assay_id: Mapped[str] = mapped_column(ForeignKey("assays.id", ondelete="CASCADE"), nullable=False, index=True)
     kcc_id: Mapped[str] = mapped_column(ForeignKey("kccs.id", ondelete="CASCADE"), nullable=False, index=True)
     secondary_kcc_id: Mapped[str | None] = mapped_column(ForeignKey("kccs.id", ondelete="SET NULL"))
+    # Raw `Secondary KC` cell as-is; covers KCAD cells listing multiple KCs (e.g. "3  9") that
+    # cannot be normalised to a single FK without losing information.
+    secondary_kc_raw: Mapped[str | None] = mapped_column(String(32))
     reference_id: Mapped[str | None] = mapped_column(ForeignKey("references.id", ondelete="SET NULL"))
     agent_id: Mapped[str | None] = mapped_column(
         ForeignKey("agents.id", ondelete="SET NULL"), index=True
     )
 
     kc_subgroup: Mapped[str | None] = mapped_column(String(255))
+    kc_subgroup2: Mapped[str | None] = mapped_column(String(255))
+    effect: Mapped[str | None] = mapped_column(String(64))
     assay_endpoint: Mapped[str | None] = mapped_column(String(255))
+    assay_endpoint2: Mapped[str | None] = mapped_column(String(255))
+    assay_endpoint3: Mapped[str | None] = mapped_column(String(128))
     biomarker: Mapped[str | None] = mapped_column(String(255))
+    method2: Mapped[str | None] = mapped_column(Text)
+    stimulant_activation_agent: Mapped[str | None] = mapped_column(String(255))
+    target_cell: Mapped[str | None] = mapped_column(String(128))
     organism: Mapped[str | None] = mapped_column(String(128))
     species: Mapped[str | None] = mapped_column(String(64))
+    mammalian: Mapped[str | None] = mapped_column(String(16))
     tissue: Mapped[str | None] = mapped_column(String(128))
+    tissue2: Mapped[str | None] = mapped_column(String(64))
     cell_type: Mapped[str | None] = mapped_column(String(128))
+    immortalized: Mapped[str | None] = mapped_column(String(16))
     cell_format: Mapped[str | None] = mapped_column(String(64))
     design: Mapped[str | None] = mapped_column(String(64))
+    design_transgenic: Mapped[str | None] = mapped_column(String(64))
     monograph_num: Mapped[str | None] = mapped_column(String(32))
     monograph_chem: Mapped[str | None] = mapped_column(String(255), index=True)
     oecd_tg: Mapped[str | None] = mapped_column(String(64))
+    cebp_ref_idx: Mapped[str | None] = mapped_column(String(32))
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="kcad", server_default="kcad")
+    # FK to the publication this annotation was sourced from (Rigutto et al. 2025 for KCAD rows).
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL"), index=True
+    )
 
     assay: Mapped["Assay"] = relationship(back_populates="annotations")
+
+
+class AssayKcSubgroup(Base):
+    """Paper-authoritative subgroup label per (assay, KC) pair.
+
+    Sourced from KCManuscript_STables 4/5: each assay row sits under a subgroup
+    header (e.g. "DNA adducts", "Protein Adducts", "Activates or antagonizes receptors").
+    A single subgroup per (assay_id, kcc_id) pair — confirmed by the layout.
+    """
+
+    __tablename__ = "assay_kc_subgroups"
+
+    assay_id: Mapped[str] = mapped_column(
+        ForeignKey("assays.id", ondelete="CASCADE"), primary_key=True
+    )
+    kcc_id: Mapped[str] = mapped_column(
+        ForeignKey("kccs.id", ondelete="CASCADE"), primary_key=True
+    )
+    subgroup: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL")
+    )
+
+    assay: Mapped["Assay"] = relationship(back_populates="kc_subgroups")
+
+
+class AssayStudyDesign(Base):
+    """Study designs an assay supports for a given KC, from KCManuscript STable4/5.
+
+    Designs: ``in_vivo``, ``ex_vivo`` (from STable4), ``in_vitro``, ``in_silico``
+    (from STable5). Multiple designs per (assay_id, kcc_id) are common.
+    """
+
+    __tablename__ = "assay_study_designs"
+
+    assay_id: Mapped[str] = mapped_column(
+        ForeignKey("assays.id", ondelete="CASCADE"), primary_key=True
+    )
+    kcc_id: Mapped[str] = mapped_column(
+        ForeignKey("kccs.id", ondelete="CASCADE"), primary_key=True
+    )
+    design: Mapped[str] = mapped_column(String(16), primary_key=True)
+    # 'stable4' or 'stable5' — which supplementary table this row came from.
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL")
+    )
+
+    assay: Mapped["Assay"] = relationship(back_populates="study_designs")
+
+
+class KcadAbbreviation(Base):
+    """Abbreviation glossary from KCManuscript_STable3."""
+
+    __tablename__ = "kcad_abbreviations"
+
+    abbreviation: Mapped[str] = mapped_column(String(64), primary_key=True)
+    expansion: Mapped[str] = mapped_column(Text, nullable=False)
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL")
+    )
+
+
+class KcadColumnDefinition(Base):
+    """Column-by-column data dictionary from KCManuscript_STable2.
+
+    Documents what each ``filtered_table.csv`` column means. Surfaced on the
+    Methodology page and via ``GET /schema/columns``.
+    """
+
+    __tablename__ = "kcad_column_definitions"
+
+    column_name: Mapped[str] = mapped_column(String(64), primary_key=True)
+    definition: Mapped[str] = mapped_column(Text, nullable=False)
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL")
+    )

@@ -2,7 +2,12 @@
 
 import streamlit as st
 
-from app.data_client import annotations_for_assay, list_assays, list_kccs
+from app.data_client import (
+    annotations_for_assay,
+    get_source_paper,
+    list_assays,
+    list_kccs,
+)
 from app.page_shell import global_search_query, init_page
 
 init_page("assays")
@@ -16,6 +21,24 @@ source_counts: dict[str, int] = {}
 for a in all_assays:
     source_counts[a.get("source", "mockup")] = source_counts.get(a.get("source", "mockup"), 0) + 1
 
+# Inventory of study designs and subgroups across the catalog (for filters).
+all_designs: set[str] = set()
+all_subgroups: set[str] = set()
+for a in all_assays:
+    for sd in a.get("study_designs") or []:
+        all_designs.add(sd.get("design", ""))
+    for sg in a.get("subgroups") or []:
+        all_subgroups.add(sg.get("subgroup", ""))
+all_designs.discard("")
+all_subgroups.discard("")
+
+DESIGN_LABELS = {
+    "in_vivo": "in vivo",
+    "ex_vivo": "ex vivo",
+    "in_vitro": "in vitro",
+    "in_silico": "in silico",
+}
+
 st.markdown('<p class="mono">Methods</p>', unsafe_allow_html=True)
 st.markdown(
     f'<h1 class="h-display" style="font-size:2rem">Assays & methods ({len(all_assays)})</h1>',
@@ -24,7 +47,17 @@ st.markdown(
 breakdown = " · ".join(f"{n} {src}" for src, n in sorted(source_counts.items()))
 st.caption(f"Standard wet-lab and high-throughput readouts mapped to one or more KCCs. {breakdown}")
 
-c1, c2, c3, c4 = st.columns([3, 2, 2, 2])
+paper = get_source_paper()
+if paper and any(a.get("source", "").startswith("kcad") for a in all_assays):
+    doi = paper.get("doi") or ""
+    url = paper.get("url") or (f"https://doi.org/{doi}" if doi else "#")
+    st.caption(
+        f"Source: [{paper.get('authors','—').split(',')[0]} et al. {paper.get('year','—')}]({url}) · "
+        f"_{paper.get('journal','—')}_ · "
+        f"DOI [`{doi}`]({url})"
+    )
+
+c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 2, 2])
 with c1:
     q = st.text_input(
         "Search",
@@ -50,6 +83,13 @@ with c4:
         "Source",
         source_options,
         format_func=lambda s: "All sources" if s == "all" else f"{s} ({source_counts.get(s, 0)})",
+    )
+with c5:
+    design_options = ["all", *sorted(all_designs)]
+    design_filter = st.selectbox(
+        "Design",
+        design_options,
+        format_func=lambda d: "All designs" if d == "all" else DESIGN_LABELS.get(d, d),
     )
 
 filtered = all_assays
@@ -81,6 +121,12 @@ if throughput_filter != "all":
     filtered = [a for a in filtered if (a.get("throughput") or "").lower() == throughput_filter.lower()]
 if source_filter != "all":
     filtered = [a for a in filtered if a.get("source", "mockup") == source_filter]
+if design_filter != "all":
+    filtered = [
+        a
+        for a in filtered
+        if any(sd.get("design") == design_filter for sd in a.get("study_designs") or [])
+    ]
 
 st.caption(f"Showing {len(filtered)} / {len(all_assays)}")
 
@@ -116,9 +162,34 @@ for i, a in enumerate(page_rows):
                     tags.append(f"KCC-{k['n']:02d} · {k['short']}")
             if tags:
                 st.caption("Maps to: " + ", ".join(tags))
+            # Paper-authoritative subgroup taxonomy per KCC (STable4/5).
+            subgroups = a.get("subgroups") or []
+            if subgroups:
+                sg_chips = " ".join(
+                    f'<span style="display:inline-block;font-size:10px;padding:2px 6px;'
+                    f'margin:1px 2px 1px 0;border:1px solid #cbd5e1;border-radius:8px;'
+                    f'background:#f1f5f9;color:#334155">'
+                    f'KC{int(sg["kcc_id"].split("-")[1])}: {sg["subgroup"]}</span>'
+                    for sg in subgroups
+                    if sg.get("kcc_id", "").startswith("kcc-")
+                )
+                if sg_chips:
+                    st.markdown(sg_chips, unsafe_allow_html=True)
+            # Study designs (in vivo / ex vivo / in vitro / in silico).
+            designs = a.get("study_designs") or []
+            if designs:
+                seen_d: set[str] = set()
+                d_labels = []
+                for sd in designs:
+                    d = sd.get("design")
+                    if d and d not in seen_d:
+                        seen_d.add(d)
+                        d_labels.append(DESIGN_LABELS.get(d, d))
+                if d_labels:
+                    st.caption("Designs: " + " · ".join(d_labels))
             if a.get("oecd_tg") and a["oecd_tg"] != "—":
                 st.caption(a["oecd_tg"])
-            if a.get("source") == "kcad":
+            if a.get("source", "").startswith("kcad"):
                 with st.expander("KCAD study annotations"):
                     anns = annotations_for_assay(a["id"], limit=20)
                     if not anns:

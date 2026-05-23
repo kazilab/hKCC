@@ -1,0 +1,223 @@
+{
+  "_comment": "IARC agents catalog from KCManuscript_STable1. Source-of-truth for CAS, IARC group, monograph volume, evaluation year. Loaded by pipelines.import_kcad_supplementary.import_stable1_agents.",
+  "_source": "suppl_data/KCManuscript_STable1.xlsx",
+  "_paper": "kcad-paper-rigutto-2025",
+  "agents": [
+    {
+      "id": "1-1-1-trichloroethane",
+      "name": "1,1,1-Trichloroethane",
+      "cas": "71-55-6",
+      "iarc_group": "2A",
+      "monograph_volume": "20, Sup 7, 71, 130",
+      "monograph_pub_year": "2022 online",
+      "evaluation_year": 2021
+    },
+    {
+      "id": "2-mercaptobenzothiazole",
+      "name": "2-Mercaptobenzothiazole",
+      "cas": "149-30-4",
+      "iarc_group": "2A",
+      "monograph_volume": "115",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2016
+    },
+    {
+      "id": "3-3-4-4-tetrachloroazobenzene",
+      "name": "3,3′,4,4′-Tetrachloroazobenzene",
+      "cas": "14047-09-7",
+      "iarc_group": "2A",
+      "monograph_volume": "117",
+      "monograph_pub_year": "2019",
+      "evaluation_year": 2016
+    },
+    {
+      "id": "acrolein",
+      "name": "Acrolein",
+      "cas": "107-02-8",
+      "iarc_group": "2A",
+      "monograph_volume": "63, Sup 7, 128",
+      "monograph_pub_year": "2021 online",
+      "evaluation_year": 2020
+    },
+    {
+      "id": "aniline-see-also-aniline-hydrochloride",
+      "name": "Aniline (see also Aniline hydrochloride)",
+      "cas": "62-53-3",
+      "iarc_group": "2A",
+      "monograph_volume": "27, Sup 7, 127",
+      "monograph_pub_year": "2021 online",
+      "evaluation_year": 2020
+    },
+    {
+      "id": "aniline-hydrochloride-see-also-aniline",
+      "name": "Aniline hydrochloride (see also Aniline)",
+      "cas": "142-04-1",
+      "iarc_group": "2A",
+      "monograph_volume": "127",
+      "monograph_pub_year": "2021 online",
+      "evaluation_year": 2020
+    },
+    {
+      "id": "benzene-iarc",
+      "name": "Benzene",
+      "cas": "71-43-2",
+      "iarc_group": "1",
+      "monograph_volume": "29, Sup 7, 100F, 120",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2017
+    },
+    {
+      "id": "cobalt-metal-without-tungsten-carbide-or-other-metal-alloys",
+      "name": "Cobalt metal (without tungsten carbide or other metal alloys)",
+      "cas": "7440-48-4",
+      "iarc_group": "2A",
+      "monograph_volume": "52, 86, 131",
+      "monograph_pub_year": "2023 online",
+      "evaluation_year": 2022
+    },
+    {
+      "id": "ddt-4-4-dichlorodiphenyltrichloroethane",
+      "name": "DDT (4,4'-dichlorodiphenyltrichloroethane)",
+      "cas": "50-29-3",
+      "iarc_group": "2A",
+      "monograph_volume": "Sup 7, 53, 113",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2015
+    },
+    {
+      "id": "diazinon",
+      "name": "Diazinon",
+      "cas": "333-41-5",
+      "iarc_group": "2A",
+      "monograph_volume": "112",
+      "monograph_pub_year": "2017",
+      "evaluation_year": 2015
+    },
+    {
+      "id": "dieldrin-and-aldrin-metabolized-to-dieldrin",
+      "name": "Dieldrin, and aldrin metabolized to dieldrin",
+      "cas": "60-57-1, 309-00-2",
+      "iarc_group": "2A",
+      "monograph_volume": "5, Sup 7, 117",
+      "monograph_pub_year": "2019",
+      "evaluation_year": 2016
+    },
+    {
+      "id": "glycidyl-methacrylate",
+      "name": "Glycidyl methacrylate",
+      "cas": "106-91-2",
+      "iarc_group": "2A",
+      "monograph_volume": "125",
+      "monograph_pub_year": "2020 online",
+      "evaluation_year": 2019
+    },
+    {
+      "id": "glyphosate-iarc",
+      "name": "Glyphosate",
+      "cas": "1071-83-6",
+      "iarc_group": "2A",
+      "monograph_volume": "112",
+      "monograph_pub_year": "2017",
+      "evaluation_year": 2015
+    },
+    {
+      "id": "hydrazine",
+      "name": "Hydrazine",
+      "cas": "302-01-2",
+      "iarc_group": "2A",
+      "monograph_volume": "4, Sup 7, 71, 115",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2016
+    },
+    {
+      "id": "lindane-see-also-hexachlorocyclohexanes",
+      "name": "Lindane (see also Hexachlorocyclohexanes)",
+      "cas": "58-89-9",
+      "iarc_group": "1",
+      "monograph_volume": "113",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2015
+    },
+    {
+      "id": "malathion",
+      "name": "Malathion",
+      "cas": "121-75-5",
+      "iarc_group": "2A",
+      "monograph_volume": "30, Sup 7, 112",
+      "monograph_pub_year": "2017",
+      "evaluation_year": 2015
+    },
+    {
+      "id": "n-n-dimethylformamide",
+      "name": "N,N-Dimethylformamide",
+      "cas": "68-12-2",
+      "iarc_group": "2A",
+      "monograph_volume": "47, 71, 115",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2016
+    },
+    {
+      "id": "ortho-anisidine-see-also-ortho-anisidine-hydrochloride",
+      "name": "ortho-Anisidine (see also ortho-Anisidine hydrochloride)",
+      "cas": "90-04-0",
+      "iarc_group": "2A",
+      "monograph_volume": "Sup 7, 73, 127",
+      "monograph_pub_year": "2021 online",
+      "evaluation_year": 2020
+    },
+    {
+      "id": "ortho-anisidine-hydrochloride-see-also-ortho-anisidine",
+      "name": "ortho-Anisidine hydrochloride (see also ortho-Anisidine)",
+      "cas": "134-29-2",
+      "iarc_group": "2A",
+      "monograph_volume": "127",
+      "monograph_pub_year": "2021 online",
+      "evaluation_year": 2020
+    },
+    {
+      "id": "ortho-nitroanisole",
+      "name": "ortho-Nitroanisole",
+      "cas": "91-23-6",
+      "iarc_group": "2A",
+      "monograph_volume": "65, 127",
+      "monograph_pub_year": "2021 online",
+      "evaluation_year": 2020
+    },
+    {
+      "id": "pentachlorophenol-see-also-polychlorophenols",
+      "name": "Pentachlorophenol (see also Polychlorophenols)",
+      "cas": "87-86-5",
+      "iarc_group": "1",
+      "monograph_volume": "53, 71, 117",
+      "monograph_pub_year": "2019",
+      "evaluation_year": 2016
+    },
+    {
+      "id": "styrene",
+      "name": "Styrene",
+      "cas": "100-42-5",
+      "iarc_group": "2A",
+      "monograph_volume": "60, 82, 121",
+      "monograph_pub_year": "2019",
+      "evaluation_year": 2018
+    },
+    {
+      "id": "styrene-7-8-oxide",
+      "name": "Styrene-7,8-oxide",
+      "cas": "96-09-3",
+      "iarc_group": "2A",
+      "monograph_volume": "Sup 7, 60, 121",
+      "monograph_pub_year": "2019",
+      "evaluation_year": 2018
+    },
+    {
+      "id": "tetrabromobisphenol-a-iarc",
+      "name": "Tetrabromobisphenol A",
+      "cas": "79-94-7",
+      "iarc_group": "2A",
+      "monograph_volume": "115",
+      "monograph_pub_year": "2018",
+      "evaluation_year": 2016
+    }
+  ]
+}

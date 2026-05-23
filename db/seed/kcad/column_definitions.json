@@ -1,0 +1,119 @@
+{
+  "_comment": "Data dictionary for filtered_table.csv columns. Definitions from KCManuscript_STable2.",
+  "_source": "suppl_data/KCManuscript_STable2.xlsx",
+  "_paper": "kcad-paper-rigutto-2025",
+  "definitions": [
+    {
+      "column_name": "KC",
+      "definition": "Primary key characteristic of carcinogens"
+    },
+    {
+      "column_name": "Secondary_KC",
+      "definition": "Other associated key characteristic"
+    },
+    {
+      "column_name": "KC_Subgroup",
+      "definition": "Major endpoints associated with the key characteristic"
+    },
+    {
+      "column_name": "KC_Subgroup2",
+      "definition": "Additional sub-grouping of the KC subgroup, if applicable"
+    },
+    {
+      "column_name": "Assay_endpoint",
+      "definition": "The assay endpoint provides context to what biomarker/outcome measured by a particular assay is indicative of, and how it relates back to the broader KC/KC-subgrouping. For example, DNA adducts measured using [32P]-Postlabelling techniques indicate DNA damage ('Assay endpoint'). If within a given study the specific DNA adducts being measured are known to be caused by by-products of oxidative radicals, the KC subgroup provides context to the associated KC: 'oxidative damage to DNA'."
+    },
+    {
+      "column_name": "Assay_endpoint2",
+      "definition": "Additional sub-grouping of the KC endpoints, if applicable. For example, an assay may be used to measure a specific type of lipid peroxidation product (a by-product of reactive oxygen species reacting with cellular lipids and thus denoted as being the secondary assay endpoint, 'Assay endpoint II'). This by-product's relevance to a chemical's carcinogenic potential is its propensity to react with nucleophilic sites in DNA (DNA damage thus being primary assay endpoint for this assay, 'Assay endpoint I'.)."
+    },
+    {
+      "column_name": "Assay_endpoint3",
+      "definition": "See row above, 'Assay endpoint III\" offers additional subgrouping if deemed appropriate. For example, study authors may use methylation-specific PCR to confirm methylation status of CpG within the promoter region of a gene related with homologous recombination ('Assay endpoint III\"). Methylation status may alter mRNA expression of this critical cell regulatory/DNA repair gene ('Assay Endpoint II'). The primary assay endpoint relating the given chemical agent's relation to KCs is thus \"Locus-specific DNA methylation\" (Assay endpoint I)."
+    },
+    {
+      "column_name": "Biomarker",
+      "definition": "Indicates as to whether another stimulant or acitvation agent was applied to the experimental test system, required for carrying out the assay or demonstrating a particular effect"
+    },
+    {
+      "column_name": "Method",
+      "definition": "Name or description of assay/method applied"
+    },
+    {
+      "column_name": "Method2",
+      "definition": "Any additional details of the assay may be indicated here. This may either be a particular instrument, a specific method developed by a research team, etc. Many methods require the use of an additional technology"
+    },
+    {
+      "column_name": "Stimulant_activation_agent",
+      "definition": "Substance (e.g. mitogen, cytokine, cell type, virus, hormone, etc.) used to provoke a specific biological response in cells or tissue. This is commonly used in immunological applications, such as  to assess a chemical agents effect on allergic response."
+    },
+    {
+      "column_name": "Target_cell",
+      "definition": "Cell line type used to evaluate the activity of various immune effector cells, such as cytotoxic T lymphocytes (CTLs), natural killer (NK) cells, and natural cytotoxicity (NC) assays"
+    },
+    {
+      "column_name": "Cell_format",
+      "definition": "Indicates as to whether an assay is applied to a primary cell, primary tissue, a cell line, a cultured cell, or is cell-free"
+    },
+    {
+      "column_name": "Design",
+      "definition": "Experimental design in which assay may be applied"
+    },
+    {
+      "column_name": "Organism",
+      "definition": "Additonal experimental design information, as to whether assay is applied in humans vs. animals vs. plants, etc., including those that may be conducted ex vivo and in vitro."
+    },
+    {
+      "column_name": "Species",
+      "definition": "Indication as to whether an assay referenced within a publication/test guideline is to be conducted in a particular species for 'Animal' studies (or biological order - such as rodents). If the organism is 'Human', species is denoted as 'NA'."
+    },
+    {
+      "column_name": "Mammalian",
+      "definition": "Indication as to whether an assay is to be conducted in exclusively mammalian cells (or vice versa) per a particular reference (including test guidelines)"
+    },
+    {
+      "column_name": "Tissue",
+      "definition": "Tissue type in which assay is conducted/biomarker is measured (if applicable)"
+    },
+    {
+      "column_name": "Tissue2",
+      "definition": "Additional tissue type information"
+    },
+    {
+      "column_name": "Cell_type",
+      "definition": "Cell type or specific cell line in which assay is conducted/biomarker is measured"
+    },
+    {
+      "column_name": "Transgenic",
+      "definition": "Indicates if a transgenic cell line is used ('Yes')"
+    },
+    {
+      "column_name": "Immortalized",
+      "definition": "Indicates if an immortalized cell line is used ('Yes')"
+    },
+    {
+      "column_name": "Monograph_num",
+      "definition": "Monograph chemical agent"
+    },
+    {
+      "column_name": "Monograph_chem",
+      "definition": "IARC monograph in which assay is referenced, if applicable"
+    },
+    {
+      "column_name": "OECD",
+      "definition": "Associated OECD Test Guideline number, if applicable"
+    },
+    {
+      "column_name": "PMID",
+      "definition": "PMID of any references used, if applicable"
+    },
+    {
+      "column_name": "DOI",
+      "definition": "DOI of any references used, if applicable"
+    },
+    {
+      "column_name": "Citation",
+      "definition": "Study author and year of reference publication"
+    }
+  ]
+}
