@@ -642,3 +642,187 @@ def get_source_paper() -> dict | None:
 
 def api_base_url() -> str:
     return API_BASE or "http://localhost:8000"
+
+
+# ─── 10-yr IARC retrospective (Rusyn 2024) ───────────────────────────────────
+
+
+def _monograph_imports():
+    """Lazy import to keep optional in MOCKUP-only environments."""
+    from db.models import Agent, IarcMonographKcCall, IarcMonographKcStrength  # noqa: WPS433
+
+    return Agent, IarcMonographKcCall, IarcMonographKcStrength
+
+
+def list_monograph_volumes() -> list[dict]:
+    """Distinct IARC Monograph volumes covered by the 10-yr matrix."""
+    src = get_data_source()
+    if src is DataSource.API:
+        try:
+            return _get("/monograph/volumes")
+        except httpx.HTTPError:
+            return []
+    if src is DataSource.MOCKUP:
+        return []
+    _, Call, _ = _monograph_imports()
+    db = SessionLocal()
+    try:
+        from sqlalchemy import select
+
+        rows = db.execute(
+            select(Call.monograph_volume, Call.monograph_year).distinct()
+        ).all()
+        pairs = sorted(
+            {(v, y) for v, y in rows},
+            key=lambda p: int(p[0]) if str(p[0]).isdigit() else 0,
+        )
+        return [{"volume": v, "year": y} for v, y in pairs]
+    finally:
+        db.close()
+
+
+def get_monograph_agent_matrix(agent_id: str) -> dict:
+    """Compact heat-map shape for a single agent (see API /monograph/agent/{id})."""
+    src = get_data_source()
+    if src is DataSource.API:
+        try:
+            return _get(f"/monograph/agent/{agent_id}")
+        except httpx.HTTPError:
+            return {}
+    if src is DataSource.MOCKUP:
+        return {}
+    from collections import defaultdict
+
+    from sqlalchemy import select
+
+    Agent, Call, Strength = _monograph_imports()
+    db = SessionLocal()
+    try:
+        if not db.get(Agent, agent_id):
+            return {}
+        calls = db.scalars(select(Call).where(Call.agent_id == agent_id)).all()
+        if not calls:
+            return {
+                "agent_id": agent_id,
+                "monograph_volumes": [],
+                "calls": {},
+                "strength": {},
+                "overall_strength_per_volume": {},
+            }
+        by_kc: dict[str, dict[str, str]] = defaultdict(dict)
+        overall_per_vol: dict[str, dict[str, str]] = defaultdict(dict)
+        vols: set[str] = set()
+        prio = {"Yes": 4, "Equivocal": 3, "No": 2, "Protective": 1}
+        for c in calls:
+            vols.add(c.monograph_volume)
+            if c.model_system == "Overall strength":
+                overall_per_vol[c.monograph_volume][c.kcc_id] = c.call
+                continue
+            prior = by_kc[c.kcc_id].get(c.model_system)
+            if prior is None or prio.get(c.call, 0) > prio.get(prior, 0):
+                by_kc[c.kcc_id][c.model_system] = c.call
+        strengths = db.scalars(select(Strength).where(Strength.agent_id == agent_id)).all()
+        return {
+            "agent_id": agent_id,
+            "monograph_volumes": sorted(vols, key=lambda x: int(x) if str(x).isdigit() else 0),
+            "calls": dict(by_kc),
+            "strength": {
+                s.kcc_id: {"label": s.strength_label, "data_role": s.data_role}
+                for s in strengths
+            },
+            "overall_strength_per_volume": dict(overall_per_vol),
+        }
+    finally:
+        db.close()
+
+
+def list_monograph_kcc_agents(kcc_id: str, *, call: str = "Yes") -> list[dict]:
+    """Agents with the given call for ``kcc_id`` across any model system."""
+    src = get_data_source()
+    if src is DataSource.API:
+        try:
+            return _get(f"/monograph/kcc/{kcc_id}?call={call}")
+        except httpx.HTTPError:
+            return []
+    if src is DataSource.MOCKUP:
+        return []
+    from collections import defaultdict
+
+    from sqlalchemy import select
+
+    Agent, Call, _ = _monograph_imports()
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            select(Call.agent_id, Agent.name, Call.monograph_volume)
+            .join(Agent, Agent.id == Call.agent_id)
+            .where(Call.kcc_id == kcc_id, Call.call == call)
+        ).all()
+        by_agent: dict[tuple[str, str], set[str]] = defaultdict(set)
+        for aid, name, vol in rows:
+            by_agent[(aid, name)].add(vol)
+        return [
+            {
+                "agent_id": aid,
+                "agent_name": name,
+                "volumes": sorted(vols, key=lambda x: int(x) if str(x).isdigit() else 0),
+                "n_calls": len(vols),
+            }
+            for (aid, name), vols in sorted(by_agent.items(), key=lambda x: x[0][1].lower())
+        ]
+    finally:
+        db.close()
+
+
+def list_foundational_references() -> list[dict]:
+    """Reference rows whose `source` tag is 'foundational' (anchored to PDFs).
+
+    Mockup mode returns an empty list (no reference inventory in `data.js`).
+    """
+    src = get_data_source()
+    if src is DataSource.API:
+        try:
+            return [
+                r for r in (_get("/assays/references") or [])
+                if r.get("source") == "foundational"
+            ]
+        except httpx.HTTPError:
+            return []
+    if src is DataSource.MOCKUP:
+        return []
+    from sqlalchemy import select
+
+    from db.models import Reference, ReferenceTag
+
+    db = SessionLocal()
+    try:
+        refs = db.scalars(
+            select(Reference).where(Reference.source == "foundational")
+        ).all()
+        if not refs:
+            return []
+        tag_rows = db.execute(
+            select(ReferenceTag.reference_id, ReferenceTag.tag).where(
+                ReferenceTag.reference_id.in_([r.id for r in refs])
+            )
+        ).all()
+        tags_by_ref: dict[str, list[str]] = {}
+        for rid, tag in tag_rows:
+            tags_by_ref.setdefault(rid, []).append(tag)
+        return [
+            {
+                "id": r.id,
+                "year": r.year,
+                "authors": r.authors,
+                "title": r.title,
+                "journal": r.journal,
+                "vol": r.vol,
+                "doi": r.doi,
+                "url": r.url,
+                "pdf_path": r.pdf_path,
+                "tags": sorted(tags_by_ref.get(r.id, [])),
+            }
+            for r in sorted(refs, key=lambda x: (-(x.year or 0), x.title or ""))
+        ]
+    finally:
+        db.close()

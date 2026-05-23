@@ -103,10 +103,47 @@ class ReferenceOut(BaseModel):
     source: str = "mockup"
     article_id: str | None = None
     url: str | None = None
+    pdf_path: str | None = None
     tags: list[str] = Field(default_factory=list)
     kcc_ids: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
+
+
+class IarcMonographKcCallOut(BaseModel):
+    id: int
+    agent_id: str
+    kcc_id: str
+    monograph_volume: str
+    monograph_year: int | None
+    model_system: str
+    call: str
+    raw_call: str | None
+    source_ref_id: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class IarcMonographKcStrengthOut(BaseModel):
+    agent_id: str
+    kcc_id: str
+    strength_label: str
+    data_role: str | None
+    iarc_group: str | None
+    source_ref_id: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class IarcMonographMatrixCellOut(BaseModel):
+    """Compact pivot-shaped cell for the IARC Monograph KC heat-map UI."""
+
+    agent_id: str
+    kcc_id: str
+    model_system: str
+    call: str
+    raw_call: str | None = None
+    monograph_volume: str
 
 
 class AssayAnnotationOut(BaseModel):

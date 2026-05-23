@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.observability import init_sentry
-from api.routers import agents, assays, contribute, kccs, matrix, methodology
+from api.routers import agents, assays, contribute, kccs, matrix, methodology, monograph
 from db.config import allowed_origins, get_settings
 
 init_sentry("api")
@@ -31,6 +31,7 @@ app.include_router(agents.router, prefix=prefix)
 app.include_router(matrix.router, prefix=prefix)
 app.include_router(assays.router, prefix=prefix)
 app.include_router(methodology.router, prefix=prefix)
+app.include_router(monograph.router, prefix=prefix)
 app.include_router(contribute.router, prefix=prefix)
 
 

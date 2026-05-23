@@ -172,6 +172,9 @@ class Reference(Base):
     article_id: Mapped[str | None] = mapped_column(String(64))
     # Optional URL pointing to the canonical hosted version (DOI page, journal PDF, etc.).
     url: Mapped[str | None] = mapped_column(String(512))
+    # Repo-relative path to a local PDF/DOCX copy (e.g. "references/KCC-10yr.pdf"),
+    # surfaced by the Methodology page so curators can open the source file in-place.
+    pdf_path: Mapped[str | None] = mapped_column(String(512))
 
     tags: Mapped[list["ReferenceTag"]] = relationship(back_populates="reference", cascade="all, delete-orphan")
     kcc_links: Mapped[list["ReferenceKCC"]] = relationship(
@@ -392,4 +395,80 @@ class KcadColumnDefinition(Base):
     definition: Mapped[str] = mapped_column(Text, nullable=False)
     source_ref_id: Mapped[str | None] = mapped_column(
         ForeignKey("references.id", ondelete="SET NULL")
+    )
+
+
+class IarcMonographKcCall(Base):
+    """Per-(volume, agent, model-system) Yes/No/Equivocal/Protective call for one KC.
+
+    Sourced from Rusyn et al. 2024 (Tox Sci) Supplementary File 12 — the 10-year
+    KCC retrospective. One row per non-blank cell in the 19 IARC-Monograph-volume
+    sheets (Vol 112–130). Cell values are paper-verbatim:
+
+    - ``Yes``        — convincing evidence the agent exhibits this KC
+    - ``No``         — convincing evidence the agent does NOT exhibit this KC
+    - ``Equivocal``  — mixed / inconclusive evidence
+    - ``Protective`` — agent ACTIVELY SUPPRESSES this KC (subsumes Antioxidant /
+                      Antiinflammatory variants seen in Vol 116). The raw verbatim
+                      label is preserved in ``raw_call``.
+
+    See :doc:`KCC_EVIDENCE_RULES` for the score-aggregation algorithm that
+    derives ``Evidence.score`` from these rows.
+    """
+
+    __tablename__ = "iarc_monograph_kc_calls"
+    __table_args__ = (
+        UniqueConstraint(
+            "agent_id",
+            "kcc_id",
+            "monograph_volume",
+            "model_system",
+            name="uq_iarc_call_quad",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    agent_id: Mapped[str] = mapped_column(
+        ForeignKey("agents.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kcc_id: Mapped[str] = mapped_column(
+        ForeignKey("kccs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    monograph_volume: Mapped[str] = mapped_column(String(16), nullable=False)
+    monograph_year: Mapped[int | None] = mapped_column(SmallInteger)
+    model_system: Mapped[str] = mapped_column(String(32), nullable=False)
+    call: Mapped[str] = mapped_column(String(16), nullable=False)
+    raw_call: Mapped[str | None] = mapped_column(String(64))
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL"), index=True
+    )
+
+
+class IarcMonographKcStrength(Base):
+    """Standardized qualitative strength label per (agent, KC).
+
+    Sourced from Rusyn et al. 2024 Supplementary File 14 (Supp Table 4 —
+    standardized terms). 73 agents × 10 KCs with values in
+    {``Strong``, ``Moderate``, ``Weak``}. Each row also records the IARC
+    Working-Group ``data_role`` (``Supportive``, ``Upgrade``, ``Not used``)
+    indicating how that KC profile fed into the final monograph evaluation.
+
+    Stored as a sibling table (rather than columns on ``Evidence``) so that
+    the paper-specific provenance stays clean: an Evidence row may aggregate
+    multiple sources, but a strength label belongs to exactly one publication.
+    """
+
+    __tablename__ = "iarc_monograph_kc_strength"
+
+    agent_id: Mapped[str] = mapped_column(
+        ForeignKey("agents.id", ondelete="CASCADE"), primary_key=True
+    )
+    kcc_id: Mapped[str] = mapped_column(
+        ForeignKey("kccs.id", ondelete="CASCADE"), primary_key=True
+    )
+    strength_label: Mapped[str] = mapped_column(String(16), nullable=False)
+    data_role: Mapped[str | None] = mapped_column(String(32))
+    iarc_group: Mapped[str | None] = mapped_column(String(8))
+    source_ref_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL"), index=True
     )

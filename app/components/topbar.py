@@ -17,6 +17,7 @@ BREADCRUMBS: dict[str, list[str]] = {
     "live_feeds": ["Build", "Live feeds"],
     "about": ["About"],
     "methodology": ["About", "Methodology"],
+    "iarc_matrix": ["Analyze", "IARC Monograph matrix"],
 }
 
 
