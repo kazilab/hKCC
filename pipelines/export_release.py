@@ -11,7 +11,17 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pandas as pd
 from sqlalchemy import select
 
-from db.models import KCC, Agent, DatasetRelease, Evidence
+from db.models import (
+    KCC,
+    Agent,
+    AgentReference,
+    Assay,
+    AssayAnnotation,
+    AssayKCC,
+    DatasetRelease,
+    Evidence,
+    Reference,
+)
 from db.session import SessionLocal
 
 EXPORT_DIR = Path(__file__).resolve().parents[1] / "exports"
@@ -38,12 +48,27 @@ def export_release(tag: str) -> Path:
         kccs = pd.read_sql(select(KCC).order_by(KCC.n), db.bind)
         agents = pd.read_sql(select(Agent), db.bind)
         evidence = pd.read_sql(select(Evidence), db.bind)
-        csv_files = ["kccs.csv", "agents.csv", "evidence.csv"]
-        parquet_files = ["kccs.parquet", "agents.parquet", "evidence.parquet"]
-        for df, fname in zip((kccs, agents, evidence), csv_files):
-            df.to_csv(out / fname, index=False)
-        for df, fname in zip((kccs, agents, evidence), parquet_files):
-            df.to_parquet(out / fname, index=False)
+        assays = pd.read_sql(select(Assay), db.bind)
+        assay_kccs = pd.read_sql(select(AssayKCC), db.bind)
+        references = pd.read_sql(select(Reference), db.bind)
+        agent_references = pd.read_sql(select(AgentReference), db.bind)
+        assay_annotations = pd.read_sql(select(AssayAnnotation), db.bind)
+
+        tables: dict[str, pd.DataFrame] = {
+            "kccs": kccs,
+            "agents": agents,
+            "evidence": evidence,
+            "assays": assays,
+            "assay_kccs": assay_kccs,
+            "references": references,
+            "agent_references": agent_references,
+            "assay_annotations": assay_annotations,
+        }
+        csv_files = [f"{name}.csv" for name in tables]
+        parquet_files = [f"{name}.parquet" for name in tables]
+        for name, df in tables.items():
+            df.to_csv(out / f"{name}.csv", index=False)
+            df.to_parquet(out / f"{name}.parquet", index=False)
 
         exported_at = datetime.now(UTC).isoformat()
         json_file = f"hkcc-{tag}.json"
@@ -55,9 +80,7 @@ def export_release(tag: str) -> Path:
                     "tag": tag,
                     "exported_at": exported_at,
                     "license": "CC-BY-4.0",
-                    "kccs": _records(kccs),
-                    "agents": _records(agents),
-                    "evidence": _records(evidence),
+                    **{name: _records(df) for name, df in tables.items()},
                 },
                 indent=2,
             ),
