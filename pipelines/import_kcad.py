@@ -60,11 +60,42 @@ KCAD_RELEASE_TAG = "0.2.0-kcad"
 KCAD_REF_TAG = "kcad"
 KC_RANGE = range(1, 11)
 
+# Canonical reference id for the KCAD source publication:
+#   Rigutto G, McHale CM, Singam ERA, Rana I, Zhang L, Smith MT.
+#   "Mapping assays to the key characteristics of carcinogens to support
+#   decision-making." Database (Oxford) 2025, article baaf026.
+# Every KCAD-derived row carries this id in `source_ref_id` so the data can
+# always be traced back to the paper that produced it.
+KCAD_PAPER_REF_ID = "kcad-paper-rigutto-2025"
+KCAD_PAPER_DOI = "10.1093/database/baaf026"
+KCAD_PAPER_URL = f"https://doi.org/{KCAD_PAPER_DOI}"
+
 KCAD_SEED_DIR = Path(__file__).resolve().parents[1] / "db" / "seed" / "kcad"
 DEFAULT_SUPPL_DIR = Path(__file__).resolve().parents[1].parent / "suppl_data"
 DEFAULT_CHEM_MAP = KCAD_SEED_DIR / "monograph_chem_map.json"
 DEFAULT_AGENTS_FILE = KCAD_SEED_DIR / "agents.json"
 DEFAULT_OUT_DIR = Path(__file__).resolve().parents[1] / "exports" / "kcad"
+
+
+def kcad_paper_reference() -> dict:
+    """Canonical Reference row for the KCAD publication (idempotent seed)."""
+    return {
+        "id": KCAD_PAPER_REF_ID,
+        "year": 2025,
+        "authors": "Rigutto G, McHale CM, Singam ERA, Rana I, Zhang L, Smith MT",
+        "title": (
+            "Mapping assays to the key characteristics of carcinogens "
+            "to support decision-making"
+        ),
+        "journal": "Database (Oxford)",
+        "vol": "2025",
+        "doi": KCAD_PAPER_DOI,
+        "pmid": None,
+        "citations": None,
+        "source": "kcad-paper",
+        "article_id": "baaf026",
+        "url": KCAD_PAPER_URL,
+    }
 
 log = logging.getLogger("import_kcad")
 
@@ -222,6 +253,9 @@ def seed_kcad_agents(db: Session, agents: list[dict]) -> int:
 
     Existing agents are *not* overwritten — the importer never claims authority
     over curator-curated names/sites/groups. We only fill in missing rows.
+
+    All newly-seeded agents are anchored to ``KCAD_PAPER_REF_ID`` via
+    ``Agent.source_ref_id``; existing agents keep their provenance untouched.
     """
     existing = {aid for (aid,) in db.execute(select(Agent.id)).all()}
     n_added = 0
@@ -232,6 +266,11 @@ def seed_kcad_agents(db: Session, agents: list[dict]) -> int:
         cas = None if cas in (None, "—", "-", "") else cas
         group = row.get("iarc_group")
         group = None if group in (None, "—", "-", "") else group
+        eval_year = row.get("evaluation_year")
+        try:
+            eval_year_int = int(eval_year) if eval_year is not None else None
+        except (TypeError, ValueError):
+            eval_year_int = None
         db.add(
             Agent(
                 id=row["id"],
@@ -241,6 +280,10 @@ def seed_kcad_agents(db: Session, agents: list[dict]) -> int:
                 agent_type=row.get("agent_type", "Industrial chemical"),
                 summary=row.get("summary", ""),
                 last_review=datetime.now(UTC),
+                monograph_volume=row.get("monograph_volume"),
+                monograph_pub_year=row.get("monograph_pub_year"),
+                evaluation_year=eval_year_int,
+                source_ref_id=KCAD_PAPER_REF_ID,
             )
         )
         sites = row.get("sites") or []
@@ -373,6 +416,7 @@ def build_bundle(
                 ),
                 "source": KCAD_SOURCE_TAG,
                 "granularity": granularity,
+                "source_ref_id": KCAD_PAPER_REF_ID,
                 "_kc_hits": kc_hits,
                 "_organisms": organisms,
                 "_tissues": tissues,
@@ -397,15 +441,14 @@ def build_bundle(
             continue
         if kc_int not in KC_RANGE:
             continue
-        sec_kc = _clean(row.get("Secondary KC"))
+        sec_kc_raw = _clean(row.get("Secondary KC"))
         sec_kcc_id: str | None = None
-        if sec_kc:
-            try:
-                n2 = int(sec_kc)
+        if sec_kc_raw:
+            m = re.search(r"\b([1-9]|10)\b", sec_kc_raw)
+            if m:
+                n2 = int(m.group(1))
                 if n2 in KC_RANGE:
                     sec_kcc_id = f"kcc-{n2:02d}"
-            except ValueError:
-                sec_kcc_id = None
 
         chem = _clean(row.get("Monograph_chem"))
         agent_id = chem_map.get(chem) if chem else None
@@ -415,21 +458,40 @@ def build_bundle(
                 "assay_id": assays_index[name],
                 "kcc_id": f"kcc-{kc_int:02d}",
                 "secondary_kcc_id": sec_kcc_id,
+                "secondary_kc_raw": sec_kc_raw,
                 "reference_id": _row_ref_id(row),
                 "agent_id": agent_id,
-                "kc_subgroup": (_clean(row.get("KC_Subgroup")) or None),
-                "assay_endpoint": (_clean(row.get("Assay_endpoint")) or None),
-                "biomarker": (_clean(row.get("Biomarker")) or None),
-                "organism": (_clean(row.get("Organism")) or None),
-                "species": (_clean(row.get("Species")) or None),
-                "tissue": (_clean(row.get("Tissue")) or None),
-                "cell_type": (_clean(row.get("Cell_type")) or None),
-                "cell_format": (_clean(row.get("Cell_format")) or None),
-                "design": (_clean(row.get("Design")) or None),
-                "monograph_num": (_clean(row.get("Monograph_num")) or None),
+                # KC classification
+                "kc_subgroup": _clean(row.get("KC_Subgroup")),
+                "kc_subgroup2": _clean(row.get("KC_subgroup2")),
+                "effect": _clean(row.get("Effect")),
+                # Assay endpoints / method
+                "assay_endpoint": _clean(row.get("Assay_endpoint")),
+                "assay_endpoint2": _clean(row.get("Assay_endpoint2")),
+                "assay_endpoint3": _clean(row.get("Assay_endpoint3")),
+                "biomarker": _clean(row.get("Biomarker")),
+                "method2": _clean(row.get("Method2")),
+                "stimulant_activation_agent": _clean(row.get("Stimulant_activation_agent")),
+                "target_cell": _clean(row.get("Target_cell")),
+                # Biology
+                "organism": _clean(row.get("Organism")),
+                "species": _clean(row.get("Species")),
+                "mammalian": _clean(row.get("Mammalian")),
+                "tissue": _clean(row.get("Tissue")),
+                "tissue2": _clean(row.get("Tissue2")),
+                "cell_type": _clean(row.get("Cell_type")),
+                "immortalized": _clean(row.get("Immortalized")),
+                # Study design
+                "cell_format": _clean(row.get("Cell_format")),
+                "design": _clean(row.get("Design")),
+                "design_transgenic": _clean(row.get("Design_transgenic")),
+                # Provenance
+                "monograph_num": _clean(row.get("Monograph_num")),
                 "monograph_chem": chem,
-                "oecd_tg": (_clean(row.get("OECD")) or None),
+                "oecd_tg": _clean(row.get("OECD")),
+                "cebp_ref_idx": _clean(row.get("CEBP")),
                 "source": KCAD_SOURCE_TAG,
+                "source_ref_id": KCAD_PAPER_REF_ID,
             }
         )
         annotation_count += 1
@@ -629,8 +691,14 @@ def load_bundle(
     if reset:
         reset_kcad_rows(db)
 
-    # 0. Seed any missing agents declared by db/seed/kcad/agents.json BEFORE
-    #    linking references — the FK on agent_references requires the row.
+    # 0a. Seed the KCAD source publication FIRST so every downstream FK
+    #     (agents.source_ref_id, assays.source_ref_id, assay_annotations.source_ref_id)
+    #     can resolve to a real row.
+    _upsert(db, Reference, [kcad_paper_reference()], pk_cols=["id"])
+    db.flush()
+
+    # 0b. Seed any missing agents declared by db/seed/kcad/agents.json BEFORE
+    #     linking references — the FK on agent_references requires the row.
     if agent_seed:
         n_new_agents = seed_kcad_agents(db, agent_seed)
         log.info("Seeded %d new agents from agents.json", n_new_agents)
@@ -718,7 +786,16 @@ def run(
     dry_run: bool = False,
     reset: bool = False,
     db: Session | None = None,
+    include_supplementary: bool = False,
 ) -> KCADBundle:
+    """Import KCAD data into hKCC.
+
+    Args:
+        include_supplementary: If True, also run :func:`pipelines.import_kcad_supplementary.run`
+            on the same session/suppl_dir, importing the five XLSX files
+            (STable1 agents, STable2 column dictionary, STable3 abbreviations,
+            STable4/5 subgroups + study designs) immediately after the CSVs.
+    """
     pivot = load_pivot(suppl_dir / "pivot_table.csv")
     filtered = load_filtered(suppl_dir / "filtered_table.csv")
     chem_map = load_chem_map(chem_map_path)
@@ -744,6 +821,15 @@ def run(
             db = SessionLocal()
         try:
             load_bundle(db, bundle, reset=reset, agent_seed=agent_seed)
+            if include_supplementary:
+                # Import deferred to runtime to avoid a hard circular import.
+                from pipelines import import_kcad_supplementary
+
+                supp_report = import_kcad_supplementary.run(
+                    suppl_dir=suppl_dir, db=db
+                )
+                bundle.report["supplementary"] = supp_report
+                log.info("Supplementary import: %s", supp_report)
         finally:
             if own_db:
                 db.close()
@@ -767,6 +853,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Delete existing source='kcad' rows before import.",
     )
+    parser.add_argument(
+        "--with-supplementary",
+        action="store_true",
+        help=(
+            "Also import the 5 XLSX supplementary tables (STable1-5). "
+            "Equivalent to running `python -m pipelines.import_kcad_supplementary` "
+            "immediately after the CSV import."
+        ),
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -782,6 +877,7 @@ def main(argv: list[str] | None = None) -> int:
         out_dir=args.out_dir,
         dry_run=args.dry_run,
         reset=args.reset_kcad,
+        include_supplementary=args.with_supplementary,
     )
     print(json.dumps(bundle.report, indent=2))
     return 0

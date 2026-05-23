@@ -18,8 +18,12 @@ from db.models import (
     Assay,
     AssayAnnotation,
     AssayKCC,
+    AssayKcSubgroup,
+    AssayStudyDesign,
     DatasetRelease,
     Evidence,
+    KcadAbbreviation,
+    KcadColumnDefinition,
     Reference,
 )
 from db.session import SessionLocal
@@ -53,6 +57,10 @@ def export_release(tag: str) -> Path:
         references = pd.read_sql(select(Reference), db.bind)
         agent_references = pd.read_sql(select(AgentReference), db.bind)
         assay_annotations = pd.read_sql(select(AssayAnnotation), db.bind)
+        assay_kc_subgroups = pd.read_sql(select(AssayKcSubgroup), db.bind)
+        assay_study_designs = pd.read_sql(select(AssayStudyDesign), db.bind)
+        kcad_abbreviations = pd.read_sql(select(KcadAbbreviation), db.bind)
+        kcad_column_definitions = pd.read_sql(select(KcadColumnDefinition), db.bind)
 
         tables: dict[str, pd.DataFrame] = {
             "kccs": kccs,
@@ -63,6 +71,10 @@ def export_release(tag: str) -> Path:
             "references": references,
             "agent_references": agent_references,
             "assay_annotations": assay_annotations,
+            "assay_kc_subgroups": assay_kc_subgroups,
+            "assay_study_designs": assay_study_designs,
+            "kcad_abbreviations": kcad_abbreviations,
+            "kcad_column_definitions": kcad_column_definitions,
         }
         csv_files = [f"{name}.csv" for name in tables]
         parquet_files = [f"{name}.parquet" for name in tables]

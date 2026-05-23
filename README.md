@@ -36,10 +36,43 @@ pytest
 |----------|-------------|
 | `GET /api/v1/kccs` | List KCCs |
 | `GET /api/v1/agents` | List agents |
+| `GET /api/v1/agents/{id}/references` | KCAD references linked to an agent |
 | `GET /api/v1/matrix` | Evidence matrix |
-| `GET /api/v1/assays` | Assay library |
+| `GET /api/v1/assays` | Assay library (filters: `source`, `design`, `subgroup`) |
+| `GET /api/v1/assays/{id}` | Single assay (includes KC subgroups + study designs) |
+| `GET /api/v1/assays/{id}/annotations` | Study-level annotations for an assay |
 | `GET /api/v1/assays/references` | Literature |
+| `GET /api/v1/methodology/source` | KCAD source paper (Rigutto et al. 2025) |
+| `GET /api/v1/methodology/abbreviations` | KCAD abbreviations glossary (49 entries) |
+| `GET /api/v1/methodology/columns` | KCAD column data dictionary (28 entries) |
 | `POST /api/v1/contribute` | Submit score proposal (queued for v2 curation) |
+
+## KCAD data integration
+
+The Key Characteristics Assay Database (**KCAD**) data shipped in
+`suppl_data/` is fully integrated. Every KCAD-derived row in the database
+carries a `source_ref_id` pointing back to the canonical publication record:
+
+> **Rigutto G, McHale CM, Singam ERA, Rana I, Zhang L, Smith MT.**
+> *Mapping assays to the key characteristics of carcinogens to support
+> decision-making.* Database (Oxford) **2025**, article `baaf026`.
+> DOI: [`10.1093/database/baaf026`](https://doi.org/10.1093/database/baaf026).
+
+Companion docs:
+
+- [`docs/KCAD_DATA_DICTIONARY.md`](docs/KCAD_DATA_DICTIONARY.md) — column-by-column
+  definitions of `filtered_table.csv` (auto-generated from STable2).
+- [`docs/KCAD_ABBREVIATIONS.md`](docs/KCAD_ABBREVIATIONS.md) — 49 abbreviations
+  used in the dataset (auto-generated from STable3).
+
+Run the full importer once Postgres + Alembic are up:
+
+```bash
+python -m pipelines.import_kcad --with-supplementary --reset-kcad
+# or, equivalently, two separate calls:
+python -m pipelines.import_kcad --reset-kcad
+python -m pipelines.import_kcad_supplementary
+```
 
 ## Repo layout
 

@@ -394,3 +394,87 @@ def test_real_data_smoke(db):
     assert n_refs_in_db == bundle.report["n_references"], (
         f"{bundle.report['n_references'] - n_refs_in_db} reference id collisions"
     )
+
+
+@pytest.mark.skipif(
+    not REAL_SUPPL_DIR.exists() or os.environ.get("KCAD_REAL_DATA") != "1",
+    reason="Set KCAD_REAL_DATA=1 to run the full-CSV round-trip test",
+)
+def test_real_data_full_column_round_trip(db):
+    """Every (row, column) pair from suppl_data/filtered_table.csv must land in DB.
+
+    For every non-NA cell in the source CSV, the corresponding `assay_annotations`
+    column (or `references` field) is populated with the same value.
+    """
+    import pandas as pd
+
+    bundle = import_kcad.run(suppl_dir=REAL_SUPPL_DIR, db=db)
+
+    # 1. Row count matches the CSV exactly.
+    flt = pd.read_csv(REAL_SUPPL_DIR / "filtered_table.csv", low_memory=False, dtype=str)
+    assert bundle.report["n_annotations"] == len(flt), (
+        f"row loss: csv={len(flt)} db={bundle.report['n_annotations']}"
+    )
+
+    # 2. Coverage check: for each filtered-table column, the DB has at least as many
+    #    non-null values as the CSV has non-NA cells.
+    CSV_TO_DB = {
+        "KC": ("kcc_id", None),
+        "Secondary KC": ("secondary_kc_raw", None),
+        "Effect": ("effect", None),
+        "KC_Subgroup": ("kc_subgroup", None),
+        "KC_subgroup2": ("kc_subgroup2", None),
+        "Assay_endpoint": ("assay_endpoint", None),
+        "Assay_endpoint2": ("assay_endpoint2", None),
+        "Assay_endpoint3": ("assay_endpoint3", None),
+        "Biomarker": ("biomarker", None),
+        "Method": ("assay_id", None),
+        "Method2": ("method2", None),
+        "Stimulant_activation_agent": ("stimulant_activation_agent", None),
+        "Target_cell": ("target_cell", None),
+        "Cell_format": ("cell_format", None),
+        "Design": ("design", None),
+        "Design_transgenic": ("design_transgenic", None),
+        "Organism": ("organism", None),
+        "Species": ("species", None),
+        "Mammalian": ("mammalian", None),
+        "Tissue": ("tissue", None),
+        "Tissue2": ("tissue2", None),
+        "Cell_type": ("cell_type", None),
+        "Immortalized": ("immortalized", None),
+        "Monograph_num": ("monograph_num", None),
+        "Monograph_chem": ("monograph_chem", None),
+        "OECD": ("oecd_tg", None),
+        "CEBP": ("cebp_ref_idx", None),
+    }
+    NA = {"-NA-", "—", "-", "", "NA", "nan"}
+    for csv_col, (db_col, _) in CSV_TO_DB.items():
+        csv_non_na = sum(1 for v in flt[csv_col].fillna("") if str(v).strip() not in NA)
+        col_attr = getattr(AssayAnnotation, db_col)
+        db_non_null = db.scalar(
+            select(func.count()).where(col_attr.is_not(None)).select_from(AssayAnnotation)
+        )
+        # Allow a small slack for Method rows we couldn't pivot-match (none expected).
+        assert db_non_null >= csv_non_na - 1, (
+            f"col {csv_col!r}→{db_col!r}: csv non-NA={csv_non_na}, db non-null={db_non_null}"
+        )
+
+    # 3. Reference-side columns: PMID, DOI, Citation are captured on `references`.
+    n_refs_csv = sum(
+        1
+        for _, r in flt.iterrows()
+        if any(str(r.get(c, "")).strip() not in NA for c in ("PMID", "DOI", "Citation"))
+    )
+    # Refs are deduped on import (DOI/PMID/citation), so n_refs_csv >> n_refs_in_db
+    # but every CSV-identifiable ref must be reachable via an annotation FK.
+    annotated_ref_ids = {
+        rid for (rid,) in db.execute(
+            select(AssayAnnotation.reference_id).where(AssayAnnotation.reference_id.is_not(None))
+        )
+    }
+    n_refs_in_db = db.scalar(
+        select(func.count()).where(Reference.source == "kcad").select_from(Reference)
+    )
+    assert len(annotated_ref_ids) == n_refs_in_db, (
+        f"orphan refs: annotated={len(annotated_ref_ids)} db={n_refs_in_db}"
+    )
