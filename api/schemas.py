@@ -60,6 +60,8 @@ class AssayOut(BaseModel):
     throughput: str
     oecd_tg: str | None
     notes: str | None
+    source: str = "mockup"
+    granularity: str = "assay"
     kcc_ids: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -73,9 +75,39 @@ class ReferenceOut(BaseModel):
     journal: str
     vol: str | None
     doi: str | None
+    pmid: str | None = None
     citations: int | None
+    source: str = "mockup"
     tags: list[str] = Field(default_factory=list)
     kcc_ids: list[str] = Field(default_factory=list)
+
+    model_config = {"from_attributes": True}
+
+
+class AssayAnnotationOut(BaseModel):
+    id: int
+    assay_id: str
+    kcc_id: str
+    secondary_kcc_id: str | None = None
+    reference_id: str | None = None
+    agent_id: str | None = None
+    kc_subgroup: str | None = None
+    assay_endpoint: str | None = None
+    organism: str | None = None
+    tissue: str | None = None
+    cell_format: str | None = None
+    design: str | None = None
+    monograph_num: str | None = None
+    monograph_chem: str | None = None
+    oecd_tg: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class AgentReferenceOut(BaseModel):
+    agent_id: str
+    reference_id: str
+    source: str = "kcad"
 
     model_config = {"from_attributes": True}
 

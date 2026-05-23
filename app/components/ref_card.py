@@ -18,6 +18,13 @@ def ref_card_html(ref: dict) -> str:
             f'<span style="font-size:9px;padding:2px 6px;border:1px solid {t["rule"]};'
             f'border-radius:3px;margin-left:8px;color:{t["muted"]}">{tag}</span>'
         )
+    source = ref.get("source") or ""
+    source_html = ""
+    if source and source != "mockup":
+        source_html = (
+            f'<span style="font-size:9px;padding:2px 6px;border:1px solid {t["rule"]};'
+            f'border-radius:3px;margin-left:4px;color:{t["muted"]};text-transform:uppercase">{source}</span>'
+        )
     doi = ref.get("doi") or ""
     doi_line = ""
     if doi and doi != "—":
@@ -26,18 +33,33 @@ def ref_card_html(ref: dict) -> str:
             f'<a href="https://doi.org/{doi_clean}" style="color:{t["accent"]};'
             f'font-size:11px">doi:{doi_clean}</a>'
         )
-    cites = ref.get("citations", 0)
+    pmid = ref.get("pmid") or ""
+    pmid_line = ""
+    if pmid:
+        pmid_line = (
+            f'<a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" style="color:{t["accent"]};'
+            f'font-size:11px;margin-left:10px">pmid:{pmid}</a>'
+        )
+    cites = ref.get("citations", 0) or 0
+    journal = ref.get("journal") or ""
+    vol = ref.get("vol") or ""
+    journal_html = ""
+    if journal and journal != "—":
+        journal_html = (
+            f'<div style="font-size:12px;color:{t["ink2"]};margin-top:4px">'
+            f'<em>{journal}</em>{", " + vol if vol else ""}</div>'
+        )
     return f"""
     <article style="padding:14px 0;border-top:1px solid {t['rule']};font-family:Public Sans,sans-serif">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
         <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:{t['accent']}">{year}</span>
-        {tag_html}
+        {tag_html}{source_html}
         <span style="margin-left:auto;font-family:JetBrains Mono,monospace;font-size:10px;color:{t['muted']}">{cites} cites</span>
       </div>
       <div style="font-family:Instrument Serif,serif;font-size:1.15rem;line-height:1.25;margin-top:8px;font-style:italic;color:{t['ink']}">{ref['title']}</div>
       <div style="font-family:JetBrains Mono,monospace;font-size:10px;color:{t['muted']};margin-top:6px">{ref['authors']}</div>
-      <div style="font-size:12px;color:{t['ink2']};margin-top:4px"><em>{ref['journal']}</em>{', ' + (ref.get('vol') or '') if ref.get('vol') else ''}</div>
-      {f'<div style="margin-top:6px">{doi_line}</div>' if doi_line else ''}
+      {journal_html}
+      {f'<div style="margin-top:6px">{doi_line}{pmid_line}</div>' if (doi_line or pmid_line) else ''}
     </article>
     """
 

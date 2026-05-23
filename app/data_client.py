@@ -13,7 +13,16 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app import mockup_store
-from db.models import KCC, Agent, Assay, AssayKCC, Evidence, Reference
+from db.models import (
+    KCC,
+    Agent,
+    AgentReference,
+    Assay,
+    AssayAnnotation,
+    AssayKCC,
+    Evidence,
+    Reference,
+)
 from db.session import SessionLocal
 
 API_BASE = os.environ.get("API_BASE_URL", "").rstrip("/")
@@ -351,7 +360,7 @@ def list_assays() -> list[dict]:
     if src is DataSource.API:
         return _get("/assays")
     if src is DataSource.MOCKUP:
-        return _mock()["assays"]
+        return [{**a, "source": "mockup", "granularity": "assay"} for a in _mock()["assays"]]
     db = SessionLocal()
     try:
         rows = db.scalars(select(Assay).options(selectinload(Assay.kcc_links)).order_by(Assay.name)).all()
@@ -364,6 +373,8 @@ def list_assays() -> list[dict]:
                 "throughput": a.throughput,
                 "oecd_tg": a.oecd_tg or "—",
                 "notes": a.notes or "",
+                "source": a.source,
+                "granularity": a.granularity,
                 "kcc_ids": [link.kcc_id for link in a.kcc_links],
             }
             for a in rows
@@ -377,7 +388,7 @@ def list_references() -> list[dict]:
     if src is DataSource.API:
         return _get("/assays/references")
     if src is DataSource.MOCKUP:
-        return _mock()["references"]
+        return [{**r, "source": "mockup", "pmid": None} for r in _mock()["references"]]
     db = SessionLocal()
     try:
         rows = db.scalars(
@@ -394,11 +405,95 @@ def list_references() -> list[dict]:
                 "journal": r.journal,
                 "vol": r.vol or "",
                 "doi": r.doi or "—",
+                "pmid": r.pmid,
                 "citations": r.citations or 0,
+                "source": r.source,
                 "tags": [t.tag for t in r.tags],
                 "kcc_ids": [lk.kcc_id for lk in r.kcc_links],
             }
             for r in rows
+        ]
+    finally:
+        db.close()
+
+
+def references_for_agent(agent_id: str) -> list[dict]:
+    """KCAD-derived references linked to an agent via `agent_references`.
+
+    Returns ``[]`` in MOCKUP mode (no AgentReference rows in `data.js`).
+    """
+    src = get_data_source()
+    if src is DataSource.MOCKUP:
+        return []
+    if src is DataSource.API:
+        try:
+            return _get(f"/agents/{agent_id}/references")
+        except httpx.HTTPError:
+            return []
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            select(Reference, AgentReference.source)
+            .join(AgentReference, AgentReference.reference_id == Reference.id)
+            .where(AgentReference.agent_id == agent_id)
+            .order_by(Reference.year.desc().nullslast())
+        ).all()
+        return [
+            {
+                "id": r.id,
+                "year": r.year,
+                "authors": r.authors,
+                "title": r.title,
+                "journal": r.journal,
+                "vol": r.vol or "",
+                "doi": r.doi or "—",
+                "pmid": r.pmid,
+                "citations": r.citations or 0,
+                "source": r.source,
+                "link_source": ar_source,
+            }
+            for (r, ar_source) in rows
+        ]
+    finally:
+        db.close()
+
+
+def annotations_for_assay(assay_id: str, *, limit: int = 50) -> list[dict]:
+    """Per-study annotations for a KCAD assay (from `assay_annotations`)."""
+    src = get_data_source()
+    if src is DataSource.MOCKUP:
+        return []
+    if src is DataSource.API:
+        try:
+            return _get(f"/assays/{assay_id}/annotations?limit={limit}")
+        except httpx.HTTPError:
+            return []
+    db = SessionLocal()
+    try:
+        rows = db.scalars(
+            select(AssayAnnotation)
+            .where(AssayAnnotation.assay_id == assay_id)
+            .order_by(AssayAnnotation.id)
+            .limit(limit)
+        ).all()
+        return [
+            {
+                "id": a.id,
+                "kcc_id": a.kcc_id,
+                "secondary_kcc_id": a.secondary_kcc_id,
+                "reference_id": a.reference_id,
+                "agent_id": a.agent_id,
+                "kc_subgroup": a.kc_subgroup,
+                "assay_endpoint": a.assay_endpoint,
+                "organism": a.organism,
+                "tissue": a.tissue,
+                "cell_format": a.cell_format,
+                "design": a.design,
+                "monograph_num": a.monograph_num,
+                "monograph_chem": a.monograph_chem,
+                "oecd_tg": a.oecd_tg,
+            }
+            for a in rows
         ]
     finally:
         db.close()

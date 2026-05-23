@@ -1,42 +1,52 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from api.schemas import AssayOut, ReferenceOut
-from db.models import Assay, Reference
+from api.schemas import AssayAnnotationOut, AssayOut, ReferenceOut
+from db.models import Assay, AssayAnnotation, Reference
 from db.session import get_db
 
 router = APIRouter(prefix="/assays", tags=["assays"])
 
 
+def _assay_out(a: Assay) -> AssayOut:
+    return AssayOut(
+        id=a.id,
+        name=a.name,
+        type=a.type,
+        target=a.target,
+        throughput=a.throughput,
+        oecd_tg=a.oecd_tg,
+        notes=a.notes,
+        source=a.source,
+        granularity=a.granularity,
+        kcc_ids=[link.kcc_id for link in a.kcc_links],
+    )
+
+
 @router.get("", response_model=list[AssayOut])
-def list_assays(db: Session = Depends(get_db)) -> list[AssayOut]:
-    assays = db.scalars(select(Assay).options(selectinload(Assay.kcc_links)).order_by(Assay.name)).all()
-    return [
-        AssayOut(
-            id=a.id,
-            name=a.name,
-            type=a.type,
-            target=a.target,
-            throughput=a.throughput,
-            oecd_tg=a.oecd_tg,
-            notes=a.notes,
-            kcc_ids=[link.kcc_id for link in a.kcc_links],
-        )
-        for a in assays
-    ]
+def list_assays(
+    db: Session = Depends(get_db),
+    source: str | None = Query(default=None, description="Filter by provenance (mockup/kcad)"),
+) -> list[AssayOut]:
+    stmt = select(Assay).options(selectinload(Assay.kcc_links)).order_by(Assay.name)
+    if source:
+        stmt = stmt.where(Assay.source == source)
+    return [_assay_out(a) for a in db.scalars(stmt).all()]
 
 
 @router.get("/references", response_model=list[ReferenceOut])
-def list_references(db: Session = Depends(get_db)) -> list[ReferenceOut]:
-    refs = db.scalars(
+def list_references(
+    db: Session = Depends(get_db),
+    source: str | None = Query(default=None),
+) -> list[ReferenceOut]:
+    stmt = (
         select(Reference)
-        .options(
-            selectinload(Reference.tags),
-            selectinload(Reference.kcc_links),
-        )
+        .options(selectinload(Reference.tags), selectinload(Reference.kcc_links))
         .order_by(Reference.year.desc().nullslast())
-    ).all()
+    )
+    if source:
+        stmt = stmt.where(Reference.source == source)
     return [
         ReferenceOut(
             id=r.id,
@@ -46,11 +56,13 @@ def list_references(db: Session = Depends(get_db)) -> list[ReferenceOut]:
             journal=r.journal,
             vol=r.vol,
             doi=r.doi,
+            pmid=r.pmid,
             citations=r.citations,
+            source=r.source,
             tags=[t.tag for t in r.tags],
             kcc_ids=[lk.kcc_id for lk in r.kcc_links],
         )
-        for r in refs
+        for r in db.scalars(stmt).all()
     ]
 
 
@@ -59,13 +71,19 @@ def get_assay(assay_id: str, db: Session = Depends(get_db)) -> AssayOut:
     assay = db.scalar(select(Assay).where(Assay.id == assay_id).options(selectinload(Assay.kcc_links)))
     if not assay:
         raise HTTPException(status_code=404, detail="Assay not found")
-    return AssayOut(
-        id=assay.id,
-        name=assay.name,
-        type=assay.type,
-        target=assay.target,
-        throughput=assay.throughput,
-        oecd_tg=assay.oecd_tg,
-        notes=assay.notes,
-        kcc_ids=[link.kcc_id for link in assay.kcc_links],
-    )
+    return _assay_out(assay)
+
+
+@router.get("/{assay_id}/annotations", response_model=list[AssayAnnotationOut])
+def list_annotations(
+    assay_id: str,
+    db: Session = Depends(get_db),
+    limit: int = Query(default=50, ge=1, le=500),
+) -> list[AssayAnnotationOut]:
+    rows = db.scalars(
+        select(AssayAnnotation)
+        .where(AssayAnnotation.assay_id == assay_id)
+        .order_by(AssayAnnotation.id)
+        .limit(limit)
+    ).all()
+    return [AssayAnnotationOut.model_validate(r) for r in rows]

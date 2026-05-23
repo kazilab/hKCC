@@ -3,9 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from api.citations import agent_bibtex, resource_bibtex, resource_ris
-from api.schemas import AgentDetailOut, AgentOut, EvidenceCellOut
+from api.schemas import AgentDetailOut, AgentOut, EvidenceCellOut, ReferenceOut
 from db.config import get_settings
-from db.models import Agent, Evidence
+from db.models import Agent, AgentReference, Evidence, Reference
 from db.session import get_db
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -78,3 +78,34 @@ def agent_bibtex_download(agent_id: str, db: Session = Depends(get_db)) -> Respo
         media_type="application/x-bibtex",
         headers={"Content-Disposition": f'attachment; filename="{agent_id}.bib"'},
     )
+
+
+@router.get("/{agent_id}/references", response_model=list[ReferenceOut])
+def list_agent_references(agent_id: str, db: Session = Depends(get_db)) -> list[ReferenceOut]:
+    """References linked to this agent via `agent_references` (KCAD-derived)."""
+    if not db.get(Agent, agent_id):
+        raise HTTPException(status_code=404, detail="Agent not found")
+    rows = db.scalars(
+        select(Reference)
+        .join(AgentReference, AgentReference.reference_id == Reference.id)
+        .where(AgentReference.agent_id == agent_id)
+        .options(selectinload(Reference.tags), selectinload(Reference.kcc_links))
+        .order_by(Reference.year.desc().nullslast())
+    ).all()
+    return [
+        ReferenceOut(
+            id=r.id,
+            year=r.year,
+            authors=r.authors,
+            title=r.title,
+            journal=r.journal,
+            vol=r.vol,
+            doi=r.doi,
+            pmid=r.pmid,
+            citations=r.citations,
+            source=r.source,
+            tags=[t.tag for t in r.tags],
+            kcc_ids=[lk.kcc_id for lk in r.kcc_links],
+        )
+        for r in rows
+    ]

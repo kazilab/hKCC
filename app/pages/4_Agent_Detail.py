@@ -3,7 +3,14 @@
 import streamlit as st
 
 from app.components.radar import render_radar
-from app.data_client import agent_evidence_map, evidence_for_agent, get_agent, list_kccs
+from app.components.ref_card import render_ref_cards
+from app.data_client import (
+    agent_evidence_map,
+    evidence_for_agent,
+    get_agent,
+    list_kccs,
+    references_for_agent,
+)
 from app.page_shell import init_page
 from app.theme import EV_COLORS
 from app.utils.evidence import kcc_coverage, total_evidence
@@ -28,6 +35,7 @@ kccs = list_kccs()
 kcc_by_id = {k["id"]: k for k in kccs}
 ev_map = agent_evidence_map(agent, [k["id"] for k in kccs])
 evidence_rows = evidence_for_agent(agent_id)
+kcad_refs = references_for_agent(agent_id)
 cov = kcc_coverage(ev_map)
 weight = total_evidence(ev_map)
 max_score = len(kccs) * 4
@@ -43,13 +51,16 @@ st.caption(
 st.markdown(f'<h1 class="h-display">{agent["name"]}</h1>', unsafe_allow_html=True)
 st.markdown(f'<p class="lede">{agent["summary"]}</p>', unsafe_allow_html=True)
 
-s1, s2, s3, s4 = st.columns(4)
+s1, s2, s3, s4, s5 = st.columns(5)
 s1.metric("KCC coverage (ev ≥ 2)", f"{cov}/14")
 s2.metric("Total weighted score", f"{weight}/{max_score}")
 s3.metric("Tumour sites", len(agent.get("sites", [])))
 s4.metric("Curated references", n_refs or "—")
+s5.metric("KCAD references", len(kcad_refs) or "—")
 
-tab = st.tabs(["KCC fingerprint", "Detailed evidence", "Tumour sites", "All references"])
+tab = st.tabs(
+    ["KCC fingerprint", "Detailed evidence", "Tumour sites", "All references", "KCAD references"]
+)
 
 with tab[0]:
     left, right = st.columns(2)
@@ -107,3 +118,26 @@ with tab[3]:
             seen.add(ref["id"])
             st.markdown(f"**{ref.get('year', '—')}** · {ref['title']}")
             st.caption(f"{ref['authors']} · _{ref['journal']}_")
+
+with tab[4]:
+    if not kcad_refs:
+        st.caption(
+            "No KCAD references linked to this agent yet. "
+            "Add an entry to `db/seed/kcad/monograph_chem_map.json` and re-run `python -m pipelines.import_kcad`."
+        )
+    else:
+        st.caption(
+            f"{len(kcad_refs)} references imported from KCAD (Rigutto et al. 2025) "
+            "via `monograph_chem → agent` mapping. Scores remain curator-driven; these are added literature."
+        )
+        PAGE_SIZE = 30
+        if len(kcad_refs) > PAGE_SIZE:
+            n_pages = (len(kcad_refs) - 1) // PAGE_SIZE + 1
+            page = st.number_input(
+                "Page", min_value=1, max_value=n_pages, value=1, step=1, key="kcad_ref_page"
+            )
+            start = (page - 1) * PAGE_SIZE
+            rows = kcad_refs[start : start + PAGE_SIZE]
+        else:
+            rows = kcad_refs
+        render_ref_cards(rows)
