@@ -22,6 +22,8 @@ from db.models import (
     AssayStudyDesign,
     DatasetRelease,
     Evidence,
+    IarcMonographKcCall,
+    IarcMonographKcStrength,
     KcadAbbreviation,
     KcadColumnDefinition,
     Reference,
@@ -61,6 +63,8 @@ def export_release(tag: str) -> Path:
         assay_study_designs = pd.read_sql(select(AssayStudyDesign), db.bind)
         kcad_abbreviations = pd.read_sql(select(KcadAbbreviation), db.bind)
         kcad_column_definitions = pd.read_sql(select(KcadColumnDefinition), db.bind)
+        iarc_monograph_kc_calls = pd.read_sql(select(IarcMonographKcCall), db.bind)
+        iarc_monograph_kc_strength = pd.read_sql(select(IarcMonographKcStrength), db.bind)
 
         tables: dict[str, pd.DataFrame] = {
             "kccs": kccs,
@@ -75,6 +79,8 @@ def export_release(tag: str) -> Path:
             "assay_study_designs": assay_study_designs,
             "kcad_abbreviations": kcad_abbreviations,
             "kcad_column_definitions": kcad_column_definitions,
+            "iarc_monograph_kc_calls": iarc_monograph_kc_calls,
+            "iarc_monograph_kc_strength": iarc_monograph_kc_strength,
         }
         csv_files = [f"{name}.csv" for name in tables]
         parquet_files = [f"{name}.parquet" for name in tables]

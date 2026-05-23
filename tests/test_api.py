@@ -281,3 +281,135 @@ def test_list_assays_filter_by_subgroup(client):
     assert len(r.json()) == 1
     r2 = client.get("/api/v1/assays?subgroup=DNA+adducts")
     assert r2.json() == []
+
+
+# ─── 10-yr IARC retrospective endpoints ──────────────────────────────────────
+
+
+def _seed_monograph(client):
+    """Seed minimal Rusyn 2024 rows to exercise the /monograph endpoints."""
+    from db.models import IarcMonographKcCall, IarcMonographKcStrength
+
+    db = next(app.dependency_overrides[get_db]())
+    # The Rusyn 2024 reference itself.
+    db.add(
+        Reference(
+            id="rusyn2024-tenyears",
+            year=2024,
+            authors="Rusyn I, Wright FA, Smith MT, et al.",
+            title="Ten years of using key characteristics ...",
+            journal="Toxicological Sciences",
+            vol="198(1):141-154",
+            doi="10.1093/toxsci/kfad134",
+            url="https://doi.org/10.1093/toxsci/kfad134",
+            pdf_path="references/kcc-10yr/KCC-10yr.pdf",
+            source="foundational",
+        )
+    )
+    db.add_all(
+        [
+            IarcMonographKcCall(
+                agent_id="benzene",
+                kcc_id="kcc-01",
+                monograph_volume="120",
+                monograph_year=2017,
+                model_system="Exposed Humans",
+                call="Yes",
+                raw_call="Yes",
+                source_ref_id="rusyn2024-tenyears",
+            ),
+            IarcMonographKcCall(
+                agent_id="benzene",
+                kcc_id="kcc-01",
+                monograph_volume="120",
+                monograph_year=2017,
+                model_system="Human cells in vitro",
+                call="Yes",
+                raw_call="Yes",
+                source_ref_id="rusyn2024-tenyears",
+            ),
+            IarcMonographKcCall(
+                agent_id="benzene",
+                kcc_id="kcc-01",
+                monograph_volume="120",
+                monograph_year=2017,
+                model_system="Overall strength",
+                call="Strong",
+                raw_call="Strong",
+                source_ref_id="rusyn2024-tenyears",
+            ),
+            IarcMonographKcStrength(
+                agent_id="benzene",
+                kcc_id="kcc-01",
+                strength_label="Strong",
+                data_role="Supportive",
+                iarc_group="1",
+                source_ref_id="rusyn2024-tenyears",
+            ),
+        ]
+    )
+    db.commit()
+    db.close()
+
+
+def test_monograph_volumes(client):
+    _seed(client)
+    _seed_monograph(client)
+    r = client.get("/api/v1/monograph/volumes")
+    assert r.status_code == 200
+    vols = r.json()
+    assert vols == [{"volume": "120", "year": 2017}]
+
+
+def test_monograph_agent_matrix(client):
+    _seed(client)
+    _seed_monograph(client)
+    r = client.get("/api/v1/monograph/agent/benzene")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["agent_id"] == "benzene"
+    assert body["monograph_volumes"] == ["120"]
+    # Yes calls are folded into the per-(KC, model_system) heat-map shape.
+    assert body["calls"]["kcc-01"]["Exposed Humans"] == "Yes"
+    assert body["calls"]["kcc-01"]["Human cells in vitro"] == "Yes"
+    # Paper-aggregate strength is exposed.
+    assert body["strength"]["kcc-01"]["label"] == "Strong"
+    # Per-volume Overall strength surfaces as a sibling dict.
+    assert body["overall_strength_per_volume"]["120"]["kcc-01"] == "Strong"
+
+
+def test_monograph_calls_filter(client):
+    _seed(client)
+    _seed_monograph(client)
+    r = client.get("/api/v1/monograph/calls?agent_id=benzene&kcc_id=kcc-01&call=Yes")
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) == 2  # Exposed Humans + Human cells in vitro
+    assert all(row["call"] == "Yes" for row in rows)
+
+
+def test_monograph_kcc_agents(client):
+    _seed(client)
+    _seed_monograph(client)
+    r = client.get("/api/v1/monograph/kcc/kcc-01?call=Yes")
+    assert r.status_code == 200
+    rows = r.json()
+    assert rows == [
+        {
+            "agent_id": "benzene",
+            "agent_name": "Benzene",
+            "volumes": ["120"],
+            "n_calls": 1,
+        }
+    ]
+
+
+def test_monograph_strengths_filter(client):
+    _seed(client)
+    _seed_monograph(client)
+    r = client.get("/api/v1/monograph/strengths?strength=Strong")
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) == 1
+    assert rows[0]["strength_label"] == "Strong"
+    assert rows[0]["data_role"] == "Supportive"

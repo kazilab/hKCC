@@ -15,6 +15,7 @@ def test_streamlit_pages_exist():
         "8_API_Downloads.py",
         "9_About.py",
         "9a_Methodology.py",
+        "9b_IARC_Matrix.py",
     ]
     assert (root / "streamlit_app.py").is_file()
     for p in pages:

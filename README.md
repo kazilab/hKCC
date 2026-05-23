@@ -45,6 +45,11 @@ pytest
 | `GET /api/v1/methodology/source` | KCAD source paper (Rigutto et al. 2025) |
 | `GET /api/v1/methodology/abbreviations` | KCAD abbreviations glossary (49 entries) |
 | `GET /api/v1/methodology/columns` | KCAD column data dictionary (28 entries) |
+| `GET /api/v1/monograph/volumes` | IARC Monograph volumes covered by the 10-yr matrix |
+| `GET /api/v1/monograph/calls` | Per-(volume, agent, model-system, KC) call rows |
+| `GET /api/v1/monograph/strengths` | Per-(agent, KC) standardized strength labels |
+| `GET /api/v1/monograph/agent/{id}` | Heat-map shape for a single agent |
+| `GET /api/v1/monograph/kcc/{id}` | Agents with a given call for a given KC |
 | `POST /api/v1/contribute` | Submit score proposal (queued for v2 curation) |
 
 ## KCAD data integration
@@ -73,6 +78,33 @@ python -m pipelines.import_kcad --with-supplementary --reset-kcad
 python -m pipelines.import_kcad --reset-kcad
 python -m pipelines.import_kcad_supplementary
 ```
+
+## IARC 10-year retrospective integration
+
+The Rusyn et al. 2024 supplementary tables (`references/kcc-10yr/`) are
+ingested into two paper-authoritative tables — `iarc_monograph_kc_calls`
+(per-volume, per-model-system Yes/No/Equivocal/Protective calls) and
+`iarc_monograph_kc_strength` (per-(agent, KC) standardized Strong/Moderate/
+Weak labels). Both anchor to a canonical Reference row
+`rusyn2024-tenyears` (DOI [`10.1093/toxsci/kfad134`](https://doi.org/10.1093/toxsci/kfad134))
+that also points to the local PDF copy.
+
+> **Rusyn I, Wright FA, Smith MT, et al.** *Ten years of using key
+> characteristics of human carcinogens to organize and evaluate mechanistic
+> evidence in IARC Monographs Volumes 112–130.* Toxicological Sciences
+> 198(1):141–154 (2024).
+
+```bash
+python -m pipelines.import_10yr_kcc
+```
+
+The importer also seeds 15 foundational references from
+`db/seed/refs/foundational.json` (Smith 2016, Guyton 2018, Smith 2020,
+Rieswijk 2019, Tcheremenskaia 2021, …) — every entry carries a DOI/URL plus a
+`pdf_path` so the **About → Methodology** page can hyperlink directly to the
+PDF in `references/`. See [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md)
+for the deterministic algorithm that maps the paper's cell labels to the
+0–4 `evidence.score` scale.
 
 ## Repo layout
 
