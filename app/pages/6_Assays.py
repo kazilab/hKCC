@@ -1,5 +1,7 @@
 """Assays & methods library — mockup screen 7."""
 
+import html
+
 import streamlit as st
 
 from app.data_client import (
@@ -51,10 +53,14 @@ paper = get_source_paper()
 if paper and any(a.get("source", "").startswith("kcad") for a in all_assays):
     doi = paper.get("doi") or ""
     url = paper.get("url") or (f"https://doi.org/{doi}" if doi else "#")
-    st.caption(
-        f"Source: [{paper.get('authors','—').split(',')[0]} et al. {paper.get('year','—')}]({url}) · "
-        f"_{paper.get('journal','—')}_ · "
-        f"DOI [`{doi}`]({url})"
+    st.markdown(
+        f'<span style="font-size:0.875rem;color:#6b7280">Source: '
+        f'<a href="{html.escape(url)}" target="_blank" rel="noopener noreferrer">'
+        f'{html.escape(paper.get("authors", "—").split(",")[0])} et al. {paper.get("year", "—")}</a>'
+        f' · <em>{html.escape(paper.get("journal", "—"))}</em> · DOI '
+        f'<a href="{html.escape(url)}" target="_blank" rel="noopener noreferrer">'
+        f'<code>{html.escape(doi)}</code></a></span>',
+        unsafe_allow_html=True,
     )
 
 c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 2, 2])

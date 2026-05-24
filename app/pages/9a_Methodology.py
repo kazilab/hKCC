@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 import streamlit as st
 
 from app.data_client import (
@@ -42,7 +44,15 @@ with st.container(border=True):
         st.markdown(f"**{title}**")
         st.caption(f"{authors} · _{journal}_ ({year})" + (f", vol. {vol}" if vol else "") + (f", article {article_id}" if article_id else ""))
         if doi:
-            st.markdown(f"DOI: [`{doi}`]({url}) · Database URL: [`https://kcad.cchem.berkeley.edu`](https://kcad.cchem.berkeley.edu)")
+            st.markdown(
+                "DOI: "
+                f'<a href="{html.escape(url or "")}" target="_blank" rel="noopener noreferrer">'
+                f"<code>{html.escape(doi)}</code></a>"
+                " · Database URL: "
+                '<a href="https://kcad.cchem.berkeley.edu" target="_blank" rel="noopener noreferrer">'
+                "<code>https://kcad.cchem.berkeley.edu</code></a>",
+                unsafe_allow_html=True,
+            )
     else:
         st.caption(
             "Paper reference row not seeded — run "

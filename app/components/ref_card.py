@@ -9,6 +9,7 @@ from app.theme import THEME
 
 def ref_card_html(ref: dict) -> str:
     t = THEME
+    external_attrs = 'target="_blank" rel="noopener noreferrer"'
     year = ref.get("year") or "—"
     tags = ref.get("tags", [])
     tag_html = ""
@@ -30,14 +31,14 @@ def ref_card_html(ref: dict) -> str:
     if doi and doi != "—":
         doi_clean = doi.replace("https://doi.org/", "")
         doi_line = (
-            f'<a href="https://doi.org/{doi_clean}" style="color:{t["accent"]};'
+            f'<a href="https://doi.org/{doi_clean}" {external_attrs} style="color:{t["accent"]};'
             f'font-size:11px">doi:{doi_clean}</a>'
         )
     pmid = ref.get("pmid") or ""
     pmid_line = ""
     if pmid:
         pmid_line = (
-            f'<a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" style="color:{t["accent"]};'
+            f'<a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" {external_attrs} style="color:{t["accent"]};'
             f'font-size:11px;margin-left:10px">pmid:{pmid}</a>'
         )
     cites = ref.get("citations", 0) or 0

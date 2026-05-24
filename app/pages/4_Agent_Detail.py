@@ -1,5 +1,7 @@
 """Agent profile — mockup screen 5."""
 
+import html
+
 import streamlit as st
 
 from app.components.radar import render_radar
@@ -105,7 +107,11 @@ with tab[1]:
                 st.caption(f"{ref['authors']} · _{ref['journal']}_")
                 if ref.get("doi") and ref["doi"] != "—":
                     doi = ref["doi"].replace("https://doi.org/", "")
-                    st.markdown(f"[DOI](https://doi.org/{doi})")
+                    st.markdown(
+                        f'<a href="https://doi.org/{html.escape(doi)}" target="_blank" '
+                        f'rel="noopener noreferrer">DOI</a>',
+                        unsafe_allow_html=True,
+                    )
 
 with tab[2]:
     for site in agent.get("sites", []):

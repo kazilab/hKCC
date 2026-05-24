@@ -15,6 +15,7 @@ The whole page degrades to a static notice when no data source is available.
 
 from __future__ import annotations
 
+import html
 from pathlib import Path
 
 import pandas as pd
@@ -218,8 +219,13 @@ with tab_refs:
         "**Ten years of using key characteristics of human carcinogens to organize "
         "and evaluate mechanistic evidence in IARC Monographs Volumes 112–130: "
         "impact and lessons learned.**  \n"
-        "_Toxicological Sciences_ 198(1):141–154.  \n"
-        "DOI: [`10.1093/toxsci/kfad134`](https://doi.org/10.1093/toxsci/kfad134)"
+        "_Toxicological Sciences_ 198(1):141–154."
+    )
+    doi = "10.1093/toxsci/kfad134"
+    st.markdown(
+        f'DOI: <a href="https://doi.org/{html.escape(doi)}" target="_blank" '
+        f'rel="noopener noreferrer"><code>{html.escape(doi)}</code></a>',
+        unsafe_allow_html=True,
     )
     local_pdf = Path("references/kcc-10yr/KCC-10yr.pdf")
     if local_pdf.is_file():
