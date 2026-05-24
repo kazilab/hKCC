@@ -1,4 +1,0 @@
-api
-app
-db
-pipelines
