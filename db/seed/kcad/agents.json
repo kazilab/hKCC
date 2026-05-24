@@ -1,0 +1,312 @@
+{
+  "_comment": "Agent rows for the 34 IARC Monograph chemicals that appear in suppl_data/filtered_table.csv but not in data.js. CAS / IARC group / monograph volume verified against IARC Monographs Vols 107–128. Loaded with source='kcad' on the AgentReference table; the Agent table has no provenance column yet, so these rows are indistinguishable from curator-added agents — that's intentional, they become first-class agents that human curators can extend.",
+  "_source": "suppl_data/filtered_table.csv Monograph_chem column",
+  "agents": [
+    {
+      "id": "13propanesultone",
+      "name": "1,3-Propane sultone",
+      "cas": "1120-71-4",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Bifunctional alkylating agent; chain-transfer reagent for surfactants and battery electrolytes. Forms DNA adducts and acts as a direct mutagen.",
+      "monograph_num": "110"
+    },
+    {
+      "id": "24d",
+      "name": "2,4-Dichlorophenoxyacetic acid (2,4-D)",
+      "cas": "94-75-7",
+      "iarc_group": "2B",
+      "agent_type": "Pesticide",
+      "summary": "Auxin-mimetic broadleaf herbicide; one of the most widely used selective herbicides since the 1940s. Inconclusive cancer evidence in humans; positive in some occupational cohorts.",
+      "monograph_num": "113"
+    },
+    {
+      "id": "2mbt",
+      "name": "2-Mercaptobenzothiazole",
+      "cas": "149-30-4",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Vulcanisation accelerator used in rubber manufacture; documented occupational bladder-cancer signal in vulcanisation workers.",
+      "monograph_num": "115"
+    },
+    {
+      "id": "tcab",
+      "name": "3,3',4,4'-Tetrachloroazobenzene (TCAB)",
+      "cas": "14047-09-7",
+      "iarc_group": "2B",
+      "agent_type": "Industrial impurity",
+      "summary": "Dioxin-like contaminant of 3,4-dichloroaniline-based herbicides. Potent aryl hydrocarbon receptor (AhR) agonist.",
+      "monograph_num": "117"
+    },
+    {
+      "id": "moca",
+      "name": "4,4'-Methylene-bis(2-chloroaniline) (MOCA)",
+      "cas": "101-14-4",
+      "iarc_group": "1",
+      "agent_type": "Industrial chemical",
+      "summary": "Curing agent for cast polyurethane elastomers; metabolised to electrophilic intermediates that form DNA adducts. Sufficient evidence for urinary-bladder cancer in humans.",
+      "monograph_num": "100F"
+    },
+    {
+      "id": "acrolein",
+      "name": "Acrolein",
+      "cas": "107-02-8",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Highly reactive α,β-unsaturated aldehyde present in tobacco smoke and combustion emissions. Forms Michael adducts on DNA bases and proteins.",
+      "monograph_num": "128"
+    },
+    {
+      "id": "aldrin",
+      "name": "Aldrin",
+      "cas": "309-00-2",
+      "iarc_group": "3",
+      "agent_type": "Pesticide",
+      "summary": "Organochlorine insecticide rapidly epoxidised in vivo to dieldrin. Banned in most countries; persistent in food chains.",
+      "monograph_num": "117"
+    },
+    {
+      "id": "aldrin-dieldrin",
+      "name": "Aldrin / Dieldrin (mixture)",
+      "cas": "—",
+      "iarc_group": "3",
+      "agent_type": "Pesticide",
+      "summary": "Joint annotation used in KCAD for studies treating Aldrin and its in-vivo metabolite Dieldrin as a single exposure.",
+      "monograph_num": "117"
+    },
+    {
+      "id": "aniline",
+      "name": "Aniline",
+      "cas": "62-53-3",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Aromatic amine used as a dye and polymer precursor. Activated by N-hydroxylation; classic example of aromatic-amine carcinogenesis.",
+      "monograph_num": "127"
+    },
+    {
+      "id": "aniline-hcl",
+      "name": "Aniline hydrochloride",
+      "cas": "142-04-1",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Salt form of aniline used in industrial settings; same toxicodynamics as the free base.",
+      "monograph_num": "127"
+    },
+    {
+      "id": "carbon-nanotubes",
+      "name": "Carbon nanotubes (MWCNT-7)",
+      "cas": "308068-56-6",
+      "iarc_group": "2B",
+      "agent_type": "Nanomaterial",
+      "summary": "Multi-walled carbon nanotubes; Group 2B applies specifically to MWCNT-7. Mechanically and inflammation-driven mesothelial carcinogenesis akin to asbestos.",
+      "monograph_num": "111"
+    },
+    {
+      "id": "ddt",
+      "name": "DDT",
+      "cas": "50-29-3",
+      "iarc_group": "2A",
+      "agent_type": "Pesticide",
+      "summary": "Persistent organochlorine insecticide; first widespread synthetic pesticide. Reclassified to 2A in 2015 on the basis of liver, testicular and NHL evidence.",
+      "monograph_num": "113"
+    },
+    {
+      "id": "diazinon",
+      "name": "Diazinon",
+      "cas": "333-41-5",
+      "iarc_group": "2A",
+      "agent_type": "Pesticide",
+      "summary": "Organophosphate insecticide; metabolised to diazoxon, a cholinesterase inhibitor with genotoxic side activity.",
+      "monograph_num": "112"
+    },
+    {
+      "id": "dichloromethane",
+      "name": "Dichloromethane",
+      "cas": "75-09-2",
+      "iarc_group": "2A",
+      "agent_type": "Industrial solvent",
+      "summary": "Methylene chloride; widely used as paint stripper and process solvent. Metabolised by GSTT1 to genotoxic intermediates.",
+      "monograph_num": "110"
+    },
+    {
+      "id": "dieldrin",
+      "name": "Dieldrin",
+      "cas": "60-57-1",
+      "iarc_group": "3",
+      "agent_type": "Pesticide",
+      "summary": "Persistent organochlorine; epoxide metabolite of aldrin. Inadequate evidence in humans despite extensive bioactivity data.",
+      "monograph_num": "117"
+    },
+    {
+      "id": "glycidol",
+      "name": "Glycidol",
+      "cas": "556-52-5",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Reactive epoxy-alcohol used in epoxide synthesis and sterilisation. Forms DNA adducts in multiple tissues.",
+      "monograph_num": "125"
+    },
+    {
+      "id": "glycidyl-methacrylate",
+      "name": "Glycidyl methacrylate",
+      "cas": "106-91-2",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Bi-functional monomer combining a glycidyl epoxide and a methacrylate vinyl group. Direct genotoxin in standard assays.",
+      "monograph_num": "125"
+    },
+    {
+      "id": "hydrazine",
+      "name": "Hydrazine",
+      "cas": "302-01-2",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Powerful reducing agent used in rocket fuels and boiler-water treatment. Forms methyl-DNA adducts via in-vivo methylation.",
+      "monograph_num": "115"
+    },
+    {
+      "id": "hydrazine-sulfate",
+      "name": "Hydrazine sulfate",
+      "cas": "10034-93-2",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Salt form of hydrazine used in agricultural and pharmaceutical synthesis; same toxicodynamics as hydrazine.",
+      "monograph_num": "115"
+    },
+    {
+      "id": "lindane",
+      "name": "Lindane",
+      "cas": "58-89-9",
+      "iarc_group": "1",
+      "agent_type": "Pesticide",
+      "summary": "γ-Hexachlorocyclohexane; organochlorine insecticide and scabicide. Reclassified to Group 1 in 2015 on the basis of non-Hodgkin lymphoma evidence.",
+      "monograph_num": "113"
+    },
+    {
+      "id": "malathion",
+      "name": "Malathion",
+      "cas": "121-75-5",
+      "iarc_group": "2A",
+      "agent_type": "Pesticide",
+      "summary": "Organophosphate; activated to malaoxon, a cholinesterase inhibitor with genotoxic activity at high doses.",
+      "monograph_num": "112"
+    },
+    {
+      "id": "dmf",
+      "name": "N,N-Dimethylformamide",
+      "cas": "68-12-2",
+      "iarc_group": "2A",
+      "agent_type": "Industrial solvent",
+      "summary": "Polar aprotic solvent widely used in pharmaceutical, polymer and acrylic-fibre manufacturing. Hepatotoxic; testicular and HCC signals in cohorts.",
+      "monograph_num": "115"
+    },
+    {
+      "id": "nitroanisole",
+      "name": "Nitroanisole",
+      "cas": "—",
+      "iarc_group": "—",
+      "agent_type": "Industrial chemical",
+      "summary": "Generic KCAD label for nitroanisole isomers; see also ortho-nitroanisole for the IARC-listed compound.",
+      "monograph_num": "127"
+    },
+    {
+      "id": "parathion",
+      "name": "Parathion",
+      "cas": "56-38-2",
+      "iarc_group": "2B",
+      "agent_type": "Pesticide",
+      "summary": "Highly toxic organophosphate, banned in most countries. Activated to paraoxon; mechanism-of-action data link it to oxidative stress and immunosuppression.",
+      "monograph_num": "112"
+    },
+    {
+      "id": "pentachlorophenol",
+      "name": "Pentachlorophenol",
+      "cas": "87-86-5",
+      "iarc_group": "1",
+      "agent_type": "Industrial chemical",
+      "summary": "Wood preservative and biocide. Sufficient evidence for non-Hodgkin lymphoma and soft-tissue sarcoma in occupational cohorts.",
+      "monograph_num": "117"
+    },
+    {
+      "id": "pcb",
+      "name": "Polychlorinated biphenyls (PCBs)",
+      "cas": "1336-36-3",
+      "iarc_group": "1",
+      "agent_type": "Persistent organic pollutant",
+      "summary": "Mixture of 209 congeners formerly used as dielectric fluids; bioaccumulative. AhR-mediated promotion plus immunotoxicity; sufficient evidence for melanoma in humans.",
+      "monograph_num": "107"
+    },
+    {
+      "id": "styrene",
+      "name": "Styrene",
+      "cas": "100-42-5",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Monomer for polystyrene and ABS resins; activated to genotoxic styrene-7,8-oxide by CYP2E1/2B6.",
+      "monograph_num": "121"
+    },
+    {
+      "id": "styrene-styrene-7-8-oxide",
+      "name": "Styrene + Styrene-7,8-oxide (mixture)",
+      "cas": "—",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Joint annotation for KCAD studies that report effects of styrene and its primary genotoxic metabolite together.",
+      "monograph_num": "121"
+    },
+    {
+      "id": "styrene-7-8-oxide",
+      "name": "Styrene-7,8-oxide",
+      "cas": "96-09-3",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Reactive epoxide metabolite of styrene; direct genotoxin forming DNA and haemoglobin adducts.",
+      "monograph_num": "121"
+    },
+    {
+      "id": "styrene-oxide",
+      "name": "Styrene oxide",
+      "cas": "96-09-3",
+      "iarc_group": "2A",
+      "agent_type": "Industrial chemical",
+      "summary": "Alternative KCAD label for styrene-7,8-oxide; same CAS.",
+      "monograph_num": "121"
+    },
+    {
+      "id": "tbbpa",
+      "name": "Tetrabromobisphenol A (TBBPA)",
+      "cas": "79-94-7",
+      "iarc_group": "2A",
+      "agent_type": "Brominated flame retardant",
+      "summary": "Most-used reactive brominated flame retardant; endocrine-active and thyroid-axis disruptor.",
+      "monograph_num": "115"
+    },
+    {
+      "id": "ortho-anisidine-hcl",
+      "name": "ortho-Anisidine hydrochloride",
+      "cas": "134-29-2",
+      "iarc_group": "2B",
+      "agent_type": "Industrial chemical",
+      "summary": "Salt form of ortho-anisidine used in dye manufacture; same activation pathway as the free base.",
+      "monograph_num": "127"
+    },
+    {
+      "id": "ortho-anisidine",
+      "name": "ortho-Anisidine",
+      "cas": "90-04-0",
+      "iarc_group": "2B",
+      "agent_type": "Industrial chemical",
+      "summary": "Methoxylated aromatic amine used in azo dye synthesis. N-hydroxylated to electrophilic nitrenium ion; urinary-bladder carcinogen in animals.",
+      "monograph_num": "127"
+    },
+    {
+      "id": "ortho-nitroanisole",
+      "name": "ortho-Nitroanisole",
+      "cas": "91-23-6",
+      "iarc_group": "2B",
+      "agent_type": "Industrial chemical",
+      "summary": "Aromatic nitro-ether used as a dye and pharmaceutical intermediate; reduced to ortho-anisidine in vivo.",
+      "monograph_num": "127"
+    }
+  ]
+}
