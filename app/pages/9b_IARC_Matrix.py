@@ -21,7 +21,6 @@ import pandas as pd
 import streamlit as st
 
 from app.data_client import (
-    DataSource,
     get_data_source,
     get_monograph_agent_matrix,
     list_agents,
@@ -45,7 +44,7 @@ st.caption(
     "[doi:10.1093/toxsci/kfad134](https://doi.org/10.1093/toxsci/kfad134)."
 )
 
-if get_data_source() is DataSource.NO_DATA:
+if get_data_source() == "no_data":
     st.info(
         "The IARC Monograph matrix is only available with a backing database. "
         "Run `alembic upgrade head` and then "

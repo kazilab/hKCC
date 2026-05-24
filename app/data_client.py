@@ -36,6 +36,9 @@ class DataSource(StrEnum):
     API = "api"
     DATABASE = "database"
     NO_DATA = "no_data"
+    # Backward-compatible alias for older deployed page code. This does not
+    # enable demo/mockup rows; it resolves to the no-data state.
+    MOCKUP = "no_data"
 
 
 def _api_configured() -> bool:
