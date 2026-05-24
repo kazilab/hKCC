@@ -6,7 +6,7 @@ Production platform for mapping mechanistic evidence linking carcinogenic agents
 |-------|--------|
 | Frontend | Streamlit (multi-page, sidebar nav) |
 | API | FastAPI `/api/v1/*` |
-| Database | PostgreSQL 16, SQLAlchemy, Alembic |
+| Database | SQLite by default, PostgreSQL 16 optional, SQLAlchemy |
 | Pipelines | Python (`pipelines/`) |
 
 **Licenses:** data [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) · code MIT
@@ -18,13 +18,30 @@ The JSX/HTML mockup in this repo root is **design reference only** — not porte
 ## Quick start
 
 ```bash
-cd infra && docker compose up -d db
-cd ..
 cp .env.example .env
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+python -m db.bootstrap_sqlite --replace
+streamlit run streamlit_app.py  # :8501
+uvicorn api.main:app --reload   # :8000/docs, optional
+pytest
+```
+
+The default local backend is a single SQLite file (`hkcc.db`), which is enough
+for read-only browsing and local API use. The SQLite bootstrap is
+reference-backed: it seeds only the KCC framework definitions, then imports
+KCAD and IARC data. PostgreSQL remains supported for production or multi-user
+deployments:
+
+```bash
+cd infra && docker compose up -d db
+cd ..
+cp .env.example .env
+# edit .env so DATABASE_URL=postgresql+psycopg://hkcc:hkcc@localhost:5432/hkcc
 alembic -c db/alembic.ini upgrade head
-python -m db.seed.load_seed --reset
+python -m db.seed.load_seed
+python -m pipelines.import_kcad --with-supplementary --reset-kcad
+python -m pipelines.import_10yr_kcc
 uvicorn api.main:app --reload   # :8000/docs
 streamlit run streamlit_app.py  # :8501
 pytest

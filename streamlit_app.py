@@ -33,7 +33,7 @@ st.set_page_config(
 apply_theme()
 
 with st.sidebar:
-    if get_data_source() is DataSource.MOCKUP:
+    if get_data_source() is DataSource.NO_DATA:
         st.info(data_source_label())
     else:
         st.caption(data_source_label())
