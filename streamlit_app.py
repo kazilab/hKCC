@@ -6,7 +6,7 @@ import streamlit as st
 
 from api.observability import init_sentry
 from app.components.sidebar import render_sidebar
-from app.data_client import DataSource, data_source_label, get_data_source
+from app.data_client import data_source_label, get_data_source
 from app.theme import apply_theme, init_tweak_defaults
 
 init_sentry("streamlit")
@@ -33,7 +33,7 @@ st.set_page_config(
 apply_theme()
 
 with st.sidebar:
-    if get_data_source() is DataSource.NO_DATA:
+    if get_data_source() == "no_data":
         st.info(data_source_label())
     else:
         st.caption(data_source_label())
