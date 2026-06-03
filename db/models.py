@@ -3,9 +3,11 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     SmallInteger,
     String,
@@ -175,7 +177,20 @@ class Reference(Base):
     # Repo-relative path to a local PDF/DOCX copy (e.g. "references/KCC-10yr.pdf"),
     # surfaced by the Methodology page so curators can open the source file in-place.
     pdf_path: Mapped[str | None] = mapped_column(String(512))
+    # Set when the source row conflated several distinct citations into one record
+    # (e.g. a KCAD DOI cell holding multiple space-separated DOIs). Such rows are
+    # auto-split into child references by `pipelines.normalize_references`; the
+    # original is retained, flagged here, for curator review of the inbound links.
+    needs_split: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0"
+    )
+    # Verbatim citation/identifier text as it arrived from the source, preserved so
+    # parsing/splitting is never lossy and provenance is always traceable.
+    raw_citation: Mapped[str | None] = mapped_column(Text)
 
+    identifiers: Mapped[list["ReferenceIdentifier"]] = relationship(
+        back_populates="reference", cascade="all, delete-orphan"
+    )
     tags: Mapped[list["ReferenceTag"]] = relationship(back_populates="reference", cascade="all, delete-orphan")
     kcc_links: Mapped[list["ReferenceKCC"]] = relationship(
         back_populates="reference", cascade="all, delete-orphan"
@@ -184,6 +199,42 @@ class Reference(Base):
     agent_links: Mapped[list["AgentReference"]] = relationship(
         back_populates="reference", cascade="all, delete-orphan"
     )
+
+
+class ReferenceIdentifier(Base):
+    """One external identifier (DOI, PMID, PMCID, …) for a single reference.
+
+    Replaces the old practice of stuffing several space-separated identifiers into
+    the flat ``references.doi`` / ``references.pmid`` columns. A reference may carry
+    several identifiers (e.g. a preprint DOI + a published DOI + a PMID); each gets
+    its own row. ``id_value`` is stored normalized (lowercased DOI, digits-only
+    PMID) so it can be joined/looked up directly by the resolver — the human-facing
+    original still lives on ``references.doi`` / ``references.pmid``.
+
+    The ``(id_type, id_value)`` pair is globally unique: an identifier resolves to
+    exactly one reference, which is what makes deterministic linking possible.
+    """
+
+    __tablename__ = "reference_identifiers"
+    __table_args__ = (
+        UniqueConstraint("id_type", "id_value", name="uq_reference_identifier"),
+        Index("ix_reference_identifier_ref", "reference_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    reference_id: Mapped[str] = mapped_column(
+        ForeignKey("references.id", ondelete="CASCADE"), nullable=False
+    )
+    # "doi" | "pmid" | "pmcid" | "url" | future schemes.
+    id_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    # Normalized identifier value (lowercase DOI, digits-only PMID).
+    id_value: Mapped[str] = mapped_column(String(255), nullable=False)
+    # The single identifier displayed/cited as canonical for the reference.
+    is_canonical: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0"
+    )
+
+    reference: Mapped["Reference"] = relationship(back_populates="identifiers")
 
 
 class ReferenceTag(Base):

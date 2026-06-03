@@ -109,6 +109,42 @@ class ReferenceOut(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @classmethod
+    def from_reference(
+        cls,
+        ref,
+        *,
+        tags: list[str] | None = None,
+        kcc_ids: list[str] | None = None,
+    ) -> "ReferenceOut":
+        """Serialize a Reference, emitting a single canonical DOI/PMID.
+
+        Legacy KCAD rows may still hold a space-joined multi-DOI blob in ``doi``;
+        this collapses it to the first normalized identifier so the frontend always
+        renders one working link. New imports already store single values.
+        """
+        from db.references import normalized_dois, normalized_pmids
+
+        dois = normalized_dois(ref.doi)
+        pmids = normalized_pmids(ref.pmid)
+        return cls(
+            id=ref.id,
+            year=ref.year,
+            authors=ref.authors,
+            title=ref.title,
+            journal=ref.journal,
+            vol=ref.vol,
+            doi=dois[0] if dois else None,
+            pmid=pmids[0] if pmids else None,
+            citations=ref.citations,
+            source=ref.source,
+            article_id=ref.article_id,
+            url=ref.url,
+            pdf_path=getattr(ref, "pdf_path", None),
+            tags=list(tags or []),
+            kcc_ids=list(kcc_ids or []),
+        )
+
 
 class IarcMonographKcCallOut(BaseModel):
     id: int

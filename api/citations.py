@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 from db.models import Agent, Reference
+from db.references import normalized_dois
+
+
+def _canonical_doi(ref: Reference) -> str | None:
+    dois = normalized_dois(ref.doi)
+    return dois[0] if dois else None
 
 
 def resource_bibtex(release_tag: str) -> str:
@@ -44,7 +50,8 @@ def agent_bibtex(agent: Agent, release_tag: str) -> str:
 
 def reference_bibtex(ref: Reference) -> str:
     key = ref.id.replace("-", "")
-    doi = f",\n  doi = {{{ref.doi}}}" if ref.doi else ""
+    canonical_doi = _canonical_doi(ref)
+    doi = f",\n  doi = {{{canonical_doi}}}" if canonical_doi else ""
     return (
         f"@article{{{key},\n"
         f"  author = {{{ref.authors}}},\n"
@@ -65,7 +72,8 @@ def reference_ris(ref: Reference) -> str:
     ]
     if ref.year:
         lines.append(f"PY  - {ref.year}")
-    if ref.doi:
-        lines.append(f"DO  - {ref.doi}")
+    canonical_doi = _canonical_doi(ref)
+    if canonical_doi:
+        lines.append(f"DO  - {canonical_doi}")
     lines.append("ER  - ")
     return "\n".join(lines) + "\n"

@@ -53,19 +53,4 @@ def get_source_paper(db: Session = Depends(get_db)) -> ReferenceOut:
     paper = db.get(Reference, KCAD_PAPER_REF_ID)
     if paper is None:
         raise HTTPException(status_code=404, detail="KCAD source paper not seeded")
-    return ReferenceOut(
-        id=paper.id,
-        year=paper.year,
-        authors=paper.authors,
-        title=paper.title,
-        journal=paper.journal,
-        vol=paper.vol,
-        doi=paper.doi,
-        pmid=paper.pmid,
-        citations=paper.citations,
-        source=paper.source,
-        article_id=paper.article_id,
-        url=paper.url,
-        tags=[],
-        kcc_ids=[],
-    )
+    return ReferenceOut.from_reference(paper)

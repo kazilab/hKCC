@@ -19,6 +19,32 @@ def _sqlite_url(path: Path) -> str:
     return f"sqlite:///{path.resolve().as_posix()}"
 
 
+def _ensure_columns(engine) -> None:
+    """Add columns introduced after a DB file was first created.
+
+    ``create_all`` makes missing *tables* but never ALTERs an existing table, so a
+    pre-existing ``hkcc.db`` rebuilt without ``--replace`` would lack newer columns.
+    This adds them idempotently. New tables (e.g. ``reference_identifiers``) are
+    already handled by ``create_all``.
+    """
+    from sqlalchemy import text
+
+    additions = {
+        "references": [
+            ("needs_split", "BOOLEAN NOT NULL DEFAULT 0"),
+            ("raw_citation", "TEXT"),
+        ],
+    }
+    with engine.begin() as conn:
+        for table, cols in additions.items():
+            existing = {
+                row[1] for row in conn.execute(text(f'PRAGMA table_info("{table}")'))
+            }
+            for name, ddl in cols:
+                if name not in existing:
+                    conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN {name} {ddl}'))
+
+
 def _format_size(path: Path) -> str:
     size = path.stat().st_size
     if size < 1024 * 1024:
@@ -63,6 +89,7 @@ def main() -> int:
     from db.session import SessionLocal, engine
 
     Base.metadata.create_all(bind=engine)
+    _ensure_columns(engine)
 
     db = SessionLocal()
     try:

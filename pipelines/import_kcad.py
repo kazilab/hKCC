@@ -49,9 +49,11 @@ from db.models import (
     Evidence,
     EvidenceCitation,
     Reference,
+    ReferenceIdentifier,
     ReferenceKCC,
     ReferenceTag,
 )
+from db.references import normalize_pmid, normalized_dois
 from db.session import SessionLocal
 
 KCAD_SOURCE_TAG = "kcad"
@@ -205,6 +207,45 @@ def _ref_id(*, doi: str | None, pmid: str | None, citation: str | None) -> str |
     if citation:
         return f"kcad-{_slugify(citation, maxlen=80)}-{_short_hash(citation)}"
     return None
+
+
+def _row_works(row: pd.Series) -> tuple[list[dict[str, str | None]], str | None]:
+    """De-weld a filtered row's identifier cells into the distinct works it cites.
+
+    A KCAD ``DOI`` cell can hold several space-separated DOIs — each is a *different*
+    paper. We return one work per DOI (``works[0]`` is the citation-bearing primary),
+    so the importer never welds two papers into one ``Reference`` again. A lone
+    DOI + lone PMID are treated as one work (same paper); surplus PMIDs become their
+    own works. Returns ``(works, citation_text)``.
+    """
+    doi_cell = _clean(row.get("DOI"))
+    pmid_cell = _clean(row.get("PMID"))
+    cite = _clean(row.get("Citation"))
+
+    dois = normalized_dois(doi_cell)
+    pmids: list[str] = []
+    if pmid_cell:
+        for tok in pmid_cell.split():
+            if _PMID_RE.fullmatch(tok):  # source occasionally puts a DOI in this column
+                p = normalize_pmid(tok)
+                if p and p not in pmids:
+                    pmids.append(p)
+
+    works: list[dict[str, str | None]] = []
+    if dois:
+        works.append({"doi": dois[0], "pmid": pmids[0] if pmids else None})
+        works += [{"doi": d, "pmid": None} for d in dois[1:]]
+        works += [{"doi": None, "pmid": p} for p in pmids[1:]]
+    elif pmids:
+        works.append({"doi": None, "pmid": pmids[0]})
+        works += [{"doi": None, "pmid": p} for p in pmids[1:]]
+    else:
+        works.append({"doi": None, "pmid": None})
+    return works, cite
+
+
+def _work_ref_id(work: dict[str, str | None], citation: str | None) -> str | None:
+    return _ref_id(doi=work["doi"], pmid=work["pmid"], citation=citation)
 
 
 # ─── load ─────────────────────────────────────────────────────────────────────
@@ -365,6 +406,7 @@ class KCADBundle:
     assays: list[dict] = field(default_factory=list)
     assay_kccs: list[dict] = field(default_factory=list)
     references: list[dict] = field(default_factory=list)
+    reference_identifiers: list[dict] = field(default_factory=list)
     annotations: list[dict] = field(default_factory=list)
     agent_references: list[dict] = field(default_factory=list)
     report: dict = field(default_factory=dict)
@@ -377,44 +419,66 @@ def build_bundle(
 ) -> KCADBundle:
     bundle = KCADBundle()
 
-    def _row_identifiers(row: pd.Series) -> tuple[str | None, str | None, str | None]:
-        doi = _clean(row.get("DOI"))
-        pmid = _clean(row.get("PMID"))
-        if pmid and not _PMID_RE.fullmatch(pmid):
-            pmid = None  # source occasionally puts a DOI in the PMID column
-        cite = _clean(row.get("Citation"))
-        return doi, pmid, cite
-
     # Build references first (so we know reference_id when emitting annotations).
-    refs_by_key: dict[str, dict] = {}
+    # One Reference per distinct *work* — multi-DOI cells are de-welded by _row_works.
+    refs_by_id: dict[str, dict] = {}
     for _, row in filtered.iterrows():
-        doi, pmid, cite = _row_identifiers(row)
-        if not any((doi, pmid, cite)):
-            continue
-        key = doi or pmid or cite
-        if key in refs_by_key:
-            continue
-        rid = _ref_id(doi=doi, pmid=pmid, citation=cite)
-        if not rid:
-            continue
-        authors, year = _parse_citation(cite)
-        refs_by_key[key] = {
-            "id": rid,
-            "year": year,
-            "authors": authors,
-            "title": cite or "—",
-            "journal": "—",
-            "vol": None,
-            "doi": doi,
-            "pmid": pmid,
-            "citations": None,
-            "source": KCAD_SOURCE_TAG,
-        }
-    bundle.references = list(refs_by_key.values())
+        works, cite = _row_works(row)
+        for i, w in enumerate(works):
+            is_primary = i == 0 and bool(cite)
+            rid = _work_ref_id(w, cite if i == 0 else None)
+            if not rid:
+                continue
+            existing = refs_by_id.get(rid)
+            if existing is None:
+                if is_primary:
+                    authors, year = _parse_citation(cite)
+                    title = cite or "—"
+                else:
+                    authors, year, title = "—", None, "—"
+                refs_by_id[rid] = {
+                    "id": rid,
+                    "year": year,
+                    "authors": authors,
+                    "title": title,
+                    "journal": "—",
+                    "vol": None,
+                    "doi": w["doi"],
+                    "pmid": w["pmid"],
+                    "citations": None,
+                    "source": KCAD_SOURCE_TAG,
+                }
+            else:
+                # Prefer citation-derived metadata; fill any missing identifier.
+                if is_primary and existing["title"] == "—":
+                    authors, year = _parse_citation(cite)
+                    existing.update(authors=authors, year=year, title=cite or "—")
+                if w["doi"] and not existing["doi"]:
+                    existing["doi"] = w["doi"]
+                if w["pmid"] and not existing["pmid"]:
+                    existing["pmid"] = w["pmid"]
+    bundle.references = list(refs_by_id.values())
+
+    # Normalized identifier rows (one per DOI / PMID), feeding reference_identifiers.
+    ident_seen: set[tuple[str, str]] = set()
+    for ref in bundle.references:
+        for id_type, id_value in (("doi", ref["doi"]), ("pmid", ref["pmid"])):
+            if not id_value or (id_type, id_value) in ident_seen:
+                continue
+            ident_seen.add((id_type, id_value))
+            bundle.reference_identifiers.append(
+                {
+                    "reference_id": ref["id"],
+                    "id_type": id_type,
+                    "id_value": id_value,
+                    "is_canonical": id_type == "doi" or ref["doi"] is None,
+                }
+            )
 
     def _row_ref_id(row: pd.Series) -> str | None:
-        doi, pmid, cite = _row_identifiers(row)
-        return _ref_id(doi=doi, pmid=pmid, citation=cite)
+        """Primary (citation-bearing) work's reference id for annotation FK."""
+        works, cite = _row_works(row)
+        return _work_ref_id(works[0], cite)
 
     # Group filtered rows by Method for assay metadata aggregation.
     by_method: dict[str, list[pd.Series]] = defaultdict(list)
@@ -489,7 +553,10 @@ def build_bundle(
             bundle.assay_kccs.append({"assay_id": aid, "kcc_id": f"kcc-{k:02d}"})
 
     # Annotations: one row per filtered_table row that we can attach to an assay.
+    # While iterating, collect (agent, ref) pairs for *every* work the row cites so a
+    # multi-DOI row links its agent to all cited papers (not just the primary).
     annotation_count = 0
+    agent_ref_pairs: set[tuple[str, str]] = set()
     for _, row in filtered.iterrows():
         name = row.get("Method") or row.get("Method2")
         if not name or name not in assays_index:
@@ -515,13 +582,21 @@ def build_bundle(
         chem = _clean(row.get("Monograph_chem"))
         agent_id = chem_map.get(chem) if chem else None
 
+        works, cite = _row_works(row)
+        primary_ref_id = _work_ref_id(works[0], cite)
+        if agent_id:
+            for w in works:
+                wid = _work_ref_id(w, cite)
+                if wid:
+                    agent_ref_pairs.add((agent_id, wid))
+
         bundle.annotations.append(
             {
                 "assay_id": assays_index[name],
                 "kcc_id": f"kcc-{kc_int:02d}",
                 "secondary_kcc_id": sec_kcc_id,
                 "secondary_kc_raw": sec_kc_raw,
-                "reference_id": _row_ref_id(row),
+                "reference_id": primary_ref_id,
                 "agent_id": agent_id,
                 # KC classification
                 "kc_subgroup": _clean(row.get("KC_Subgroup")),
@@ -558,16 +633,9 @@ def build_bundle(
         )
         annotation_count += 1
 
-    # Agent ↔ Reference links derived from filtered_table chem column.
-    seen_agent_ref: set[tuple[str, str]] = set()
-    for ann in bundle.annotations:
-        agent_id = ann["agent_id"]
-        ref_id = ann["reference_id"]
-        if not agent_id or not ref_id:
-            continue
-        if (agent_id, ref_id) in seen_agent_ref:
-            continue
-        seen_agent_ref.add((agent_id, ref_id))
+    # Agent ↔ Reference links: every (agent, cited work) pair gathered above, so a
+    # multi-DOI annotation row links its agent to each of the papers it cites.
+    for agent_id, ref_id in sorted(agent_ref_pairs):
         bundle.agent_references.append(
             {"agent_id": agent_id, "reference_id": ref_id, "source": KCAD_SOURCE_TAG}
         )
@@ -580,6 +648,7 @@ def build_bundle(
         "n_assays": len(bundle.assays),
         "n_assay_kcc_links": len(bundle.assay_kccs),
         "n_references": len(bundle.references),
+        "n_reference_identifiers": len(bundle.reference_identifiers),
         "n_annotations": annotation_count,
         "n_agent_references": len(bundle.agent_references),
         "assays_per_kc": dict(sorted(by_kc.items())),
@@ -730,6 +799,11 @@ def reset_kcad_rows(db: Session) -> None:
     if kcad_ref_ids:
         db.execute(delete(ReferenceKCC).where(ReferenceKCC.reference_id.in_(kcad_ref_ids)))
         db.execute(delete(ReferenceTag).where(ReferenceTag.reference_id.in_(kcad_ref_ids)))
+        db.execute(
+            delete(ReferenceIdentifier).where(
+                ReferenceIdentifier.reference_id.in_(kcad_ref_ids)
+            )
+        )
         db.execute(delete(Reference).where(Reference.id.in_(kcad_ref_ids)))
 
     for ev_id in affected_evidence_ids:
@@ -771,6 +845,32 @@ def load_bundle(
     ref_tags = [{"reference_id": r["id"], "tag": KCAD_REF_TAG} for r in bundle.references]
     _upsert(db, ReferenceTag, ref_tags, pk_cols=["reference_id", "tag"])
     db.flush()
+
+    # 1b. Normalized identifiers. Rebuild for this bundle's refs (delete-then-insert,
+    #     idempotent whether or not --reset ran). Skip values already claimed by a
+    #     reference outside this bundle to honour the (id_type, id_value) uniqueness.
+    bundle_ref_ids = {r["id"] for r in bundle.references}
+    if bundle_ref_ids:
+        db.execute(
+            delete(ReferenceIdentifier).where(
+                ReferenceIdentifier.reference_id.in_(bundle_ref_ids)
+            )
+        )
+        db.flush()
+        claimed = {
+            (t, v)
+            for (t, v) in db.execute(
+                select(ReferenceIdentifier.id_type, ReferenceIdentifier.id_value)
+            )
+        }
+        new_idents = [
+            i
+            for i in bundle.reference_identifiers
+            if (i["id_type"], i["id_value"]) not in claimed
+        ]
+        if new_idents:
+            db.execute(ReferenceIdentifier.__table__.insert(), new_idents)
+            db.flush()
 
     # 2. Assays.
     _upsert(db, Assay, bundle.assays, pk_cols=["id"])

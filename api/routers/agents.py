@@ -97,19 +97,8 @@ def list_agent_references(agent_id: str, db: Session = Depends(get_db)) -> list[
         .order_by(Reference.year.desc().nullslast())
     ).all()
     return [
-        ReferenceOut(
-            id=r.id,
-            year=r.year,
-            authors=r.authors,
-            title=r.title,
-            journal=r.journal,
-            vol=r.vol,
-            doi=r.doi,
-            pmid=r.pmid,
-            citations=r.citations,
-            source=r.source,
-            article_id=r.article_id,
-            url=r.url,
+        ReferenceOut.from_reference(
+            r,
             tags=[t.tag for t in r.tags],
             kcc_ids=[lk.kcc_id for lk in r.kcc_links],
         )
