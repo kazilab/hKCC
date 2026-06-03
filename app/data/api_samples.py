@@ -1,4 +1,4 @@
-"""Static API sample bodies for the Data & API explorer (from screens/api.jsx)."""
+"""Static API sample bodies for the Data & API explorer."""
 
 from __future__ import annotations
 

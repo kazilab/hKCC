@@ -1,4 +1,4 @@
-"""Browse carcinogens — mockup screens 4–5 (list)."""
+"""Browse carcinogens."""
 
 import pandas as pd
 import streamlit as st

@@ -1,4 +1,4 @@
-"""hKCC themes — paper (default) and dark, matching styles.css mockup."""
+"""hKCC themes: paper (default) and dark."""
 
 from __future__ import annotations
 

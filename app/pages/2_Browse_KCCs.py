@@ -1,4 +1,4 @@
-"""Browse KCCs — mockup screens 2–3."""
+"""Browse KCCs."""
 
 import streamlit as st
 

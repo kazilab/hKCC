@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import functools
 import os
+from collections.abc import Callable
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 import httpx
+import streamlit as st
 from sqlalchemy import func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
@@ -31,13 +34,45 @@ from db.session import SessionLocal
 
 API_BASE = os.environ.get("API_BASE_URL", "").rstrip("/")
 
+# Curated data only changes on a re-import, so a generous TTL is safe and keeps
+# the app responsive: each read runs once per window instead of on every
+# Streamlit rerun (which fires on every widget interaction).
+_READ_TTL = 600  # seconds
+
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+def _cached(ttl: int = _READ_TTL) -> Callable[[_F], _F]:
+    """``st.cache_data`` that is only active under a live Streamlit runtime.
+
+    Outside ``streamlit run`` (pytest, scripts, the API) the bare function runs
+    every call, so cached state never leaks across data-source switches or
+    between test cases — the behaviour tests assert on is preserved exactly.
+    """
+
+    def decorate(fn: _F) -> _F:
+        cached_fn = st.cache_data(ttl=ttl, show_spinner=False)(fn)
+
+        @functools.wraps(fn)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                if st.runtime.exists():
+                    return cached_fn(*args, **kwargs)
+            except Exception:  # noqa: BLE001 — never let caching break a read
+                pass
+            return fn(*args, **kwargs)
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorate
+
 
 class DataSource(StrEnum):
     API = "api"
     DATABASE = "database"
     NO_DATA = "no_data"
     # Backward-compatible alias for older deployed page code. This does not
-    # enable demo/mockup rows; it resolves to the no-data state.
+    # enable sample rows; it resolves to the no-data state.
     MOCKUP = "no_data"
 
 
@@ -116,6 +151,7 @@ def get_kcc(kcc_id: str) -> dict | None:
     return None
 
 
+@_cached()
 def list_kccs() -> list[dict]:
     src = get_data_source()
     if src is DataSource.API:
@@ -143,6 +179,7 @@ def list_kccs() -> list[dict]:
         db.close()
 
 
+@_cached()
 def list_agents() -> list[dict]:
     src = get_data_source()
     if src is DataSource.API:
@@ -172,6 +209,7 @@ def list_agents() -> list[dict]:
         db.close()
 
 
+@_cached()
 def get_matrix() -> dict:
     src = get_data_source()
     if src is DataSource.API:
@@ -199,22 +237,53 @@ def get_matrix() -> dict:
         db.close()
 
 
+@_cached()
+def _evidence_scores() -> dict[str, dict[str, int]]:
+    """``{agent_id: {kcc_id: score}}`` for every scored cell.
+
+    Backs :func:`agents_with_evidence` without re-scanning the whole ``agents``
+    table (which :func:`list_agents` already loads): in DB mode this is a single
+    projection over ``evidence``; in API mode it reuses the cached matrix.
+    """
+    src = get_data_source()
+    if src is DataSource.NO_DATA:
+        return {}
+    if src is DataSource.API:
+        return {r["agent_id"]: dict(r.get("scores", {})) for r in get_matrix()["rows"]}
+    db = SessionLocal()
+    try:
+        scores: dict[str, dict[str, int]] = {}
+        for agent_id, kcc_id, score in db.execute(
+            select(Evidence.agent_id, Evidence.kcc_id, Evidence.score)
+        ):
+            scores.setdefault(agent_id, {})[kcc_id] = score
+        return scores
+    finally:
+        db.close()
+
+
 def agents_with_evidence() -> tuple[list[dict], list[dict]]:
     kccs = list_kccs()
     src = get_data_source()
     if src is DataSource.NO_DATA:
         return [], kccs
     agents = list_agents()
-    matrix = get_matrix()
-    by_id = {r["agent_id"]: r for r in matrix["rows"]}
+    scores_by_agent = _evidence_scores()
+    kcc_ids = [k["id"] for k in kccs]
     enriched = []
     for a in agents:
-        row = by_id.get(a["id"], {})
-        scores = row.get("scores", {})
-        enriched.append({**a, "evidence": scores, "iarc_group": a.get("iarc_group") or row.get("iarc_group")})
+        scores = scores_by_agent.get(a["id"], {})
+        enriched.append(
+            {
+                **a,
+                "evidence": {kid: scores.get(kid, 0) for kid in kcc_ids},
+                "iarc_group": a.get("iarc_group"),
+            }
+        )
     return enriched, kccs
 
 
+@_cached()
 def get_agent(agent_id: str) -> dict | None:
     src = get_data_source()
     if src is DataSource.API:
@@ -361,6 +430,7 @@ def kcc_stats(db: Session | None = None) -> dict[str, dict[str, int]]:
             db.close()
 
 
+@_cached()
 def list_assays() -> list[dict]:
     src = get_data_source()
     if src is DataSource.API:
@@ -407,10 +477,23 @@ def list_assays() -> list[dict]:
         db.close()
 
 
+def _correct_reference(ref: dict) -> dict:
+    """Apply narrow corrections for known upstream KCAD citation typos."""
+    title = str(ref.get("title") or "")
+    year = ref.get("year")
+    if "De Coster" in title and "Paz-y-Mino 2007" in title and year != 2008:
+        corrected = dict(ref)
+        corrected["year"] = 2008
+        corrected["title"] = title.replace(str(year), "2008", 1)
+        return corrected
+    return ref
+
+
+@_cached()
 def list_references() -> list[dict]:
     src = get_data_source()
     if src is DataSource.API:
-        return _get("/assays/references")
+        return [_correct_reference(r) for r in _get("/assays/references")]
     if src is DataSource.NO_DATA:
         return []
     db = SessionLocal()
@@ -421,28 +504,31 @@ def list_references() -> list[dict]:
             .order_by(Reference.year.desc().nullslast())
         ).all()
         return [
-            {
-                "id": r.id,
-                "year": r.year,
-                "authors": r.authors,
-                "title": r.title,
-                "journal": r.journal,
-                "vol": r.vol or "",
-                "doi": r.doi or "—",
-                "pmid": r.pmid,
-                "citations": r.citations or 0,
-                "source": r.source,
-                "article_id": r.article_id,
-                "url": r.url,
-                "tags": [t.tag for t in r.tags],
-                "kcc_ids": [lk.kcc_id for lk in r.kcc_links],
-            }
+            _correct_reference(
+                {
+                    "id": r.id,
+                    "year": r.year,
+                    "authors": r.authors,
+                    "title": r.title,
+                    "journal": r.journal,
+                    "vol": r.vol or "",
+                    "doi": r.doi or "—",
+                    "pmid": r.pmid,
+                    "citations": r.citations or 0,
+                    "source": r.source,
+                    "article_id": r.article_id,
+                    "url": r.url,
+                    "tags": [t.tag for t in r.tags],
+                    "kcc_ids": [lk.kcc_id for lk in r.kcc_links],
+                }
+            )
             for r in rows
         ]
     finally:
         db.close()
 
 
+@_cached()
 def references_for_agent(agent_id: str) -> list[dict]:
     """KCAD-derived references linked to an agent via `agent_references`.
 
@@ -453,7 +539,7 @@ def references_for_agent(agent_id: str) -> list[dict]:
         return []
     if src is DataSource.API:
         try:
-            return _get(f"/agents/{agent_id}/references")
+            return [_correct_reference(r) for r in _get(f"/agents/{agent_id}/references")]
         except httpx.HTTPError:
             return []
     db = SessionLocal()
@@ -465,25 +551,28 @@ def references_for_agent(agent_id: str) -> list[dict]:
             .order_by(Reference.year.desc().nullslast())
         ).all()
         return [
-            {
-                "id": r.id,
-                "year": r.year,
-                "authors": r.authors,
-                "title": r.title,
-                "journal": r.journal,
-                "vol": r.vol or "",
-                "doi": r.doi or "—",
-                "pmid": r.pmid,
-                "citations": r.citations or 0,
-                "source": r.source,
-                "link_source": ar_source,
-            }
+            _correct_reference(
+                {
+                    "id": r.id,
+                    "year": r.year,
+                    "authors": r.authors,
+                    "title": r.title,
+                    "journal": r.journal,
+                    "vol": r.vol or "",
+                    "doi": r.doi or "—",
+                    "pmid": r.pmid,
+                    "citations": r.citations or 0,
+                    "source": r.source,
+                    "link_source": ar_source,
+                }
+            )
             for (r, ar_source) in rows
         ]
     finally:
         db.close()
 
 
+@_cached()
 def annotations_for_assay(assay_id: str, *, limit: int = 50) -> list[dict]:
     """Per-study annotations for a KCAD assay (from `assay_annotations`)."""
     src = get_data_source()
@@ -549,6 +638,7 @@ def list_references_count() -> int:
     return len(list_references())
 
 
+@_cached()
 def list_abbreviations() -> list[dict]:
     """KCAD abbreviation glossary (STable3)."""
     src = get_data_source()
@@ -572,6 +662,7 @@ def list_abbreviations() -> list[dict]:
         db.close()
 
 
+@_cached()
 def list_column_definitions() -> list[dict]:
     """KCAD column data dictionary (STable2)."""
     src = get_data_source()
@@ -595,6 +686,7 @@ def list_column_definitions() -> list[dict]:
         db.close()
 
 
+@_cached()
 def get_source_paper() -> dict | None:
     """The KCAD source publication (Rigutto et al. 2025) as a Reference row.
 
@@ -642,6 +734,7 @@ def _monograph_imports():
     return Agent, IarcMonographKcCall, IarcMonographKcStrength
 
 
+@_cached()
 def list_monograph_volumes() -> list[dict]:
     """Distinct IARC Monograph volumes covered by the 10-yr matrix."""
     src = get_data_source()
@@ -669,6 +762,7 @@ def list_monograph_volumes() -> list[dict]:
         db.close()
 
 
+@_cached()
 def get_monograph_agent_matrix(agent_id: str) -> dict:
     """Compact heat-map shape for a single agent (see API /monograph/agent/{id})."""
     src = get_data_source()
@@ -724,6 +818,7 @@ def get_monograph_agent_matrix(agent_id: str) -> dict:
         db.close()
 
 
+@_cached()
 def list_monograph_kcc_agents(kcc_id: str, *, call: str = "Yes") -> list[dict]:
     """Agents with the given call for ``kcc_id`` across any model system."""
     src = get_data_source()
@@ -762,6 +857,7 @@ def list_monograph_kcc_agents(kcc_id: str, *, call: str = "Yes") -> list[dict]:
         db.close()
 
 
+@_cached()
 def list_foundational_references() -> list[dict]:
     """Reference rows whose `source` tag is 'foundational' (anchored to PDFs).
 

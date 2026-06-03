@@ -1,4 +1,4 @@
-"""Custom sidebar nav — Browse / Analyze / Build (mockup Sidebar)."""
+"""Custom sidebar nav: Browse / Analyze / Build."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Literature reference card HTML (mockup literature list)."""
+"""Literature reference card HTML."""
 
 from __future__ import annotations
 

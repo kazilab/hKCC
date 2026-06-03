@@ -1,4 +1,4 @@
-"""HTML agent table with inline KCC fingerprints (mockup carcinogens list)."""
+"""HTML agent table with inline KCC fingerprints."""
 
 from __future__ import annotations
 

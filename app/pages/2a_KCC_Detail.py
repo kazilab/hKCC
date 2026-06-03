@@ -1,4 +1,4 @@
-"""KCC detail — mockup ScreenKCCDetail."""
+"""KCC detail."""
 
 import streamlit as st
 import streamlit.components.v1 as components

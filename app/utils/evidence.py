@@ -58,7 +58,7 @@ def group_chip_html(iarc_group: str | None) -> str:
 
 
 def ev_bar_html(score: int, *, max_score: int = 4, width: int = 80) -> str:
-    """Horizontal evidence bar (mockup EvBar)."""
+    """Horizontal evidence bar."""
     ev = _ev_colors()
     theme = _theme()
     pct = int((score / max_score) * 100) if max_score else 0

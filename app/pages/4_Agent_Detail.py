@@ -1,4 +1,4 @@
-"""Agent profile — mockup screen 5."""
+"""Agent profile."""
 
 import html
 

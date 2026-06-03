@@ -1,4 +1,4 @@
-"""Topbar with breadcrumbs and global search stub (mockup Topbar)."""
+"""Topbar with breadcrumbs and global search stub."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Overview — mockup screen 1."""
+"""Overview."""
 
 import streamlit as st
 import streamlit.components.v1 as components

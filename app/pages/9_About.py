@@ -1,4 +1,4 @@
-"""About & methodology — mockup screen 10."""
+"""About & methodology."""
 
 import streamlit as st
 

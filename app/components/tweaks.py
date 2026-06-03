@@ -1,4 +1,4 @@
-"""Sidebar tweaks panel — theme, accent, density, serif, matrix style (mockup)."""
+"""Sidebar tweaks panel: theme, accent, density, serif, matrix style."""
 
 from __future__ import annotations
 

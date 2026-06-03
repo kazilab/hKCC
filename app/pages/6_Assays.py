@@ -1,4 +1,4 @@
-"""Assays & methods library — mockup screen 7."""
+"""Assays & methods library."""
 
 import html
 

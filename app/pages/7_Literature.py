@@ -1,4 +1,4 @@
-"""Literature explorer — mockup screen 8."""
+"""Literature explorer."""
 
 import streamlit as st
 

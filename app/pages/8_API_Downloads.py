@@ -1,4 +1,4 @@
-"""Data & API — mockup screen 9."""
+"""Data & API explorer."""
 
 import base64
 import html

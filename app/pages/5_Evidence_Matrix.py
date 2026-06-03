@@ -1,4 +1,4 @@
-"""Evidence matrix heatmap — mockup screen 6."""
+"""Evidence matrix heatmap."""
 
 import pandas as pd
 import streamlit as st
