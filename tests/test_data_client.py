@@ -1,6 +1,6 @@
 import pytest
 
-from app.data_client import DataSource, get_data_source, list_kccs
+from app.data_client import DataSource, _correct_reference, get_data_source, list_kccs
 
 
 @pytest.fixture(autouse=True)
@@ -20,3 +20,15 @@ def test_no_data_source_when_sqlite_file_missing():
 
 def test_list_kccs_without_data_source_is_empty():
     assert list_kccs() == []
+
+
+def test_corrects_de_coster_year_typo():
+    bad_year = 2000 + 88
+    ref = {
+        "id": "kcad-doi-example",
+        "year": bad_year,
+        "title": f"De Coster {bad_year}  Paz-y-Mino 2007",
+    }
+
+    assert _correct_reference(ref)["year"] == 2008
+    assert _correct_reference(ref)["title"] == "De Coster 2008  Paz-y-Mino 2007"
