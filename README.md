@@ -13,8 +13,6 @@ Production platform for mapping mechanistic evidence linking carcinogenic agents
 
 Scope decisions: [docs/SCOPE.md](docs/SCOPE.md)
 
-The JSX/HTML mockup in this repo root is **design reference only** — not ported source.
-
 ## Quick start
 
 ```bash

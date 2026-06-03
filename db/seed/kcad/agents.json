@@ -1,5 +1,5 @@
 {
-  "_comment": "Agent rows for the 34 IARC Monograph chemicals that appear in suppl_data/filtered_table.csv but not in data.js. CAS / IARC group / monograph volume verified against IARC Monographs Vols 107–128. Loaded with source='kcad' on the AgentReference table; the Agent table has no provenance column yet, so these rows are indistinguishable from curator-added agents — that's intentional, they become first-class agents that human curators can extend.",
+  "_comment": "Agent rows for the 34 IARC Monograph chemicals that appear in suppl_data/filtered_table.csv and need explicit hKCC IDs. CAS / IARC group / monograph volume verified against IARC Monographs Vols 107-128. Loaded with source='kcad' on the AgentReference table; these rows become first-class agents that human curators can extend.",
   "_source": "suppl_data/filtered_table.csv Monograph_chem column",
   "agents": [
     {

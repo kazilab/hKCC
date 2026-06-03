@@ -1,0 +1,149 @@
+{
+  "_doc": [
+    "KCC framework definitions used by db.seed.load_seed.",
+    "This replaces the legacy prototype seed dependency and intentionally",
+    "contains only framework metadata, not demo agents, assays, or evidence."
+  ],
+  "kccs": [
+    {
+      "id": "kcc-01",
+      "n": 1,
+      "title": "Electrophilicity & metabolic activation",
+      "short": "Electrophilic",
+      "description": "Is electrophilic or can be metabolically activated to electrophiles that form covalent adducts with macromolecules.",
+      "mechanism": "Compounds undergo phase-I metabolic activation, often via CYP450, to produce reactive intermediates that covalently bind nucleophilic sites in DNA, RNA, and proteins.",
+      "icon": "circle",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-02",
+      "n": 2,
+      "title": "Genotoxicity",
+      "short": "Genotoxic",
+      "description": "Induces DNA damage including strand breaks, mutations, micronuclei, chromosomal aberrations, or DNA-protein crosslinks.",
+      "mechanism": "Direct or indirect induction of DNA lesions detectable in standardized genotoxicity batteries; high concordance with carcinogenicity in long-term rodent bioassays.",
+      "icon": "helix",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-03",
+      "n": 3,
+      "title": "Altered DNA repair / genomic instability",
+      "short": "DNA repair",
+      "description": "Alters DNA repair capacity or causes large-scale genomic instability, such as aneuploidy, polyploidy, or chromothripsis.",
+      "mechanism": "Indirect carcinogens may not damage DNA themselves but compromise repair fidelity or chromosomal segregation, amplifying mutational burden over time.",
+      "icon": "grid",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-04",
+      "n": 4,
+      "title": "Epigenetic alterations",
+      "short": "Epigenetic",
+      "description": "Induces changes in DNA methylation, histone modification, or non-coding RNA expression that persist across cell divisions.",
+      "mechanism": "Heritable changes in gene expression without alteration of DNA sequence can silence tumor suppressors or activate oncogenes long after exposure.",
+      "icon": "marks",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-05",
+      "n": 5,
+      "title": "Oxidative stress",
+      "short": "Oxidative",
+      "description": "Induces oxidative stress via ROS/RNS, mitochondrial dysfunction, or depletion of antioxidant defenses.",
+      "mechanism": "Excess reactive species cause oxidative DNA lesions, lipid peroxidation, and signaling dysregulation; chronic ROS exposure is mechanistically linked to multiple tumor types.",
+      "icon": "rays",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-06",
+      "n": 6,
+      "title": "Chronic inflammation",
+      "short": "Inflammation",
+      "description": "Induces or sustains chronic inflammation through cytokine release, immune cell recruitment, or persistent tissue injury.",
+      "mechanism": "Sustained inflammatory microenvironments produce ROS/RNS, growth factors, and immunosuppressive signals that promote initiation, promotion, and progression.",
+      "icon": "burst",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-07",
+      "n": 7,
+      "title": "Immunosuppression",
+      "short": "Immunosuppression",
+      "description": "Is immunosuppressive and decreases immune surveillance against transformed cells.",
+      "mechanism": "Reduced immune surveillance permits clonal expansion of pre-neoplastic cells; particularly relevant for virally driven and skin malignancies.",
+      "icon": "shield",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-08",
+      "n": 8,
+      "title": "Receptor-mediated effects",
+      "short": "Receptor",
+      "description": "Modulates nuclear receptors or membrane receptors in ways that drive proliferation or differentiation.",
+      "mechanism": "Ligand-receptor interactions produce sustained transcriptional reprogramming; especially important for hormone-dependent tissues.",
+      "icon": "diamond",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-09",
+      "n": 9,
+      "title": "Immortalization",
+      "short": "Immortalization",
+      "description": "Causes immortalization via telomerase activation or bypass of replicative senescence.",
+      "mechanism": "Activation of telomere-maintenance pathways or inactivation of the p53/Rb axis enables indefinite proliferative capacity, a hallmark of malignancy.",
+      "icon": "loop",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-10",
+      "n": 10,
+      "title": "Altered proliferation, death & nutrient supply",
+      "short": "Proliferation",
+      "description": "Alters cell proliferation, cell death, angiogenesis, or nutrient supply in the tissue microenvironment.",
+      "mechanism": "Imbalance between proliferation and apoptosis, coupled with neovascularization and metabolic rewiring, supports tumor outgrowth and expansion.",
+      "icon": "wave",
+      "is_extended": false
+    },
+    {
+      "id": "kcc-11",
+      "n": 11,
+      "title": "Microbiome alteration",
+      "short": "Microbiome",
+      "description": "Alters composition or function of the host microbiota in ways linked to carcinogenesis.",
+      "mechanism": "Dysbiosis can promote local inflammation, generate genotoxic metabolites, and modulate xenobiotic metabolism.",
+      "icon": "dots",
+      "is_extended": true
+    },
+    {
+      "id": "kcc-12",
+      "n": 12,
+      "title": "Cellular senescence",
+      "short": "Senescence",
+      "description": "Induces premature cellular senescence and a pro-tumorigenic senescence-associated secretory phenotype.",
+      "mechanism": "Senescent cells secrete a pro-inflammatory, pro-mitogenic milieu that can paradoxically promote proliferation and invasion of neighboring cells.",
+      "icon": "fade",
+      "is_extended": true
+    },
+    {
+      "id": "kcc-13",
+      "n": 13,
+      "title": "Altered stem-cell dynamics",
+      "short": "Stem cells",
+      "description": "Disrupts normal stem- or progenitor-cell behavior, including self-renewal, lineage commitment, or niche signaling.",
+      "mechanism": "Expansion or mis-differentiation of tissue stem cells generates a larger pool of long-lived cells susceptible to mutation accumulation.",
+      "icon": "tree",
+      "is_extended": true
+    },
+    {
+      "id": "kcc-14",
+      "n": 14,
+      "title": "Disrupted intercellular communication",
+      "short": "Gap junctions",
+      "description": "Disrupts gap-junction intercellular communication or other tissue-level signaling.",
+      "mechanism": "Loss of gap-junction intercellular communication removes a key homeostatic constraint, allowing initiated cells to escape growth control imposed by neighboring normal cells.",
+      "icon": "link",
+      "is_extended": true
+    }
+  ]
+}

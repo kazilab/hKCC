@@ -247,6 +247,69 @@ def load_agent_seed(path: Path) -> list[dict]:
     return list(raw.get("agents", []))
 
 
+def _norm_cas(cas: object) -> str | None:
+    """Normalise a CAS number; treat sentinels / blanks as missing."""
+    if cas is None:
+        return None
+    s = str(cas).strip()
+    return None if s in _NA_VALUES else s
+
+
+def build_agent_cas_index(*agent_lists: Iterable[dict]) -> dict[str, str]:
+    """``CAS number → agent_id`` index, mirroring the seed-merge precedence.
+
+    ``agent_lists`` are scanned in priority order (``agents.json`` first, then
+    ``iarc_agents.json``). The first agent seen for a given CAS wins, which
+    matches :func:`import_kcad_supplementary.upsert_iarc_agents` — an IARC row
+    whose CAS already belongs to a KCAD agent is merged into that agent rather
+    than inserted under its own id. CAS numbers shared by two *distinct*
+    curated agents (e.g. styrene-oxide / styrene-7-8-oxide both ``96-09-3``)
+    therefore resolve to a single id here; such chemicals must rely on the
+    explicit ``agent_id`` fallback in the chem map instead of CAS.
+    """
+    cas_to_id: dict[str, str] = {}
+    for agents in agent_lists:
+        for a in agents:
+            cas = _norm_cas(a.get("cas"))
+            if cas and cas not in cas_to_id:
+                cas_to_id[cas] = a["id"]
+    return cas_to_id
+
+
+def resolve_chem_map(
+    raw_map: dict[str, object], cas_to_id: dict[str, str]
+) -> dict[str, str]:
+    """Resolve ``Monograph_chem`` values to an ``agent_id``, CAS-first.
+
+    Each map value is either a legacy ``"agent_id"`` string or a
+    ``{"cas": ..., "agent_id": ...}`` object. Resolution order per chemical:
+
+    1. **CAS** — if a ``cas`` is given and matches exactly one agent, use it.
+       This is naming-independent: it survives agent-id renames / suffix
+       changes (``benzene`` → ``benzene-iarc``) without touching this map.
+    2. **explicit ``agent_id``** — fallback for mixtures / chemical classes
+       with no single CAS, and for CAS values shared by two distinct agents.
+
+    The returned id is *not* checked against the DB here; :func:`load_bundle`
+    keeps the existing FK guard that nulls any agent that isn't present.
+    """
+    resolved: dict[str, str] = {}
+    for chem, value in raw_map.items():
+        cas: str | None = None
+        agent_id: str | None = None
+        if isinstance(value, dict):
+            cas = _norm_cas(value.get("cas"))
+            agent_id = value.get("agent_id")
+        elif isinstance(value, str):
+            agent_id = value  # legacy "chem -> agent_id" form
+        target = cas_to_id.get(cas) if cas else None
+        if target is None:
+            target = agent_id
+        if target:
+            resolved[chem] = target
+    return resolved
+
+
 def seed_kcad_agents(db: Session, agents: list[dict]) -> int:
     """Idempotent insert/update of KCAD-derived Agent rows.
 
@@ -797,14 +860,24 @@ def run(
     """
     pivot = load_pivot(suppl_dir / "pivot_table.csv")
     filtered = load_filtered(suppl_dir / "filtered_table.csv")
-    chem_map = load_chem_map(chem_map_path)
+    raw_chem_map = load_chem_map(chem_map_path)
     agent_seed = load_agent_seed(agents_path)
+    # CAS index is built from BOTH agent seeds so the chem map resolves
+    # chemicals whose agent lives only in the IARC seed (benzene, glyphosate)
+    # without hard-coding their suffixed ids. agents.json takes precedence so
+    # CAS values it already claims win over the IARC variant (which is merged).
+    iarc_seed = load_agent_seed(KCAD_SEED_DIR / "iarc_agents.json")
+    cas_to_id = build_agent_cas_index(agent_seed, iarc_seed)
+    chem_map = resolve_chem_map(raw_chem_map, cas_to_id)
     log.info(
-        "Loaded pivot=%d rows, filtered=%d rows, chem_map=%d entries, agent_seed=%d rows",
+        "Loaded pivot=%d rows, filtered=%d rows, chem_map=%d/%d entries resolved, "
+        "agent_seed=%d rows, cas_index=%d",
         len(pivot),
         len(filtered),
         len(chem_map),
+        len(raw_chem_map),
         len(agent_seed),
+        len(cas_to_id),
     )
 
     bundle = build_bundle(pivot, filtered, chem_map)

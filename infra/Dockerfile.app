@@ -16,7 +16,7 @@ COPY api ./api
 COPY app ./app
 COPY pipelines ./pipelines
 COPY .streamlit ./.streamlit
-COPY streamlit_app.py data.js ./
+COPY streamlit_app.py ./
 
 RUN pip install --no-cache-dir -e .
 
