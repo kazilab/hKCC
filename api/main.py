@@ -9,6 +9,12 @@ init_sentry("api")
 
 settings = get_settings()
 
+# Heal a committed/older SQLite DB to the current model before serving (no-op for
+# Postgres / API-remote deploys). See db.session.ensure_sqlite_schema.
+from db.session import ensure_sqlite_schema  # noqa: E402
+
+ensure_sqlite_schema()
+
 app = FastAPI(
     title="hKCC API",
     description="Key Characteristics of Human Carcinogens — read API (v1)",
