@@ -1,5 +1,7 @@
 """hKCC Streamlit entry — custom sidebar + st.navigation fallback."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import streamlit as st
