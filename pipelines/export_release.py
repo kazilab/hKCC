@@ -15,6 +15,7 @@ from db.models import (
     KCC,
     Agent,
     AgentReference,
+    AnnotationReference,
     Assay,
     AssayAnnotation,
     AssayKCC,
@@ -59,6 +60,7 @@ def export_release(tag: str) -> Path:
         references = pd.read_sql(select(Reference), db.bind)
         agent_references = pd.read_sql(select(AgentReference), db.bind)
         assay_annotations = pd.read_sql(select(AssayAnnotation), db.bind)
+        annotation_references = pd.read_sql(select(AnnotationReference), db.bind)
         assay_kc_subgroups = pd.read_sql(select(AssayKcSubgroup), db.bind)
         assay_study_designs = pd.read_sql(select(AssayStudyDesign), db.bind)
         kcad_abbreviations = pd.read_sql(select(KcadAbbreviation), db.bind)
@@ -75,6 +77,7 @@ def export_release(tag: str) -> Path:
             "references": references,
             "agent_references": agent_references,
             "assay_annotations": assay_annotations,
+            "annotation_references": annotation_references,
             "assay_kc_subgroups": assay_kc_subgroups,
             "assay_study_designs": assay_study_designs,
             "kcad_abbreviations": kcad_abbreviations,

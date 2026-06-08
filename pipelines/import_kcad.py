@@ -42,6 +42,7 @@ from db.models import (
     Agent,
     AgentReference,
     AgentSite,
+    AnnotationReference,
     Assay,
     AssayAnnotation,
     AssayKCC,
@@ -584,11 +585,18 @@ def build_bundle(
 
         works, cite = _row_works(row)
         primary_ref_id = _work_ref_id(works[0], cite)
-        if agent_id:
-            for w in works:
-                wid = _work_ref_id(w, cite)
-                if wid:
-                    agent_ref_pairs.add((agent_id, wid))
+        # Full ordered citation set for the annotation_references bridge: a KCAD
+        # row can weld 1–5 papers into its DOI/PMID/Citation cells. Position 1 is
+        # the citation-bearing primary (mirrored onto reference_id below).
+        ann_works: list[tuple[str, str]] = []
+        for i, w in enumerate(works):
+            wid = _work_ref_id(w, cite if i == 0 else None)
+            if not wid:
+                continue
+            id_type = "doi" if w["doi"] else ("pmid" if w["pmid"] else "citation")
+            ann_works.append((wid, id_type))
+            if agent_id:
+                agent_ref_pairs.add((agent_id, wid))
 
         bundle.annotations.append(
             {
@@ -629,6 +637,8 @@ def build_bundle(
                 "cebp_ref_idx": _clean(row.get("CEBP")),
                 "source": KCAD_SOURCE_TAG,
                 "source_ref_id": KCAD_PAPER_REF_ID,
+                # Not a column — consumed by load_bundle to build annotation_references.
+                "_works": ann_works,
             }
         )
         annotation_count += 1
@@ -700,10 +710,11 @@ def link_evidence_citations(db: Session) -> dict[str, int]:
       that already exist.
     - We never remove existing ``EvidenceCitation`` rows — only insert missing ones.
 
-    For each ``(agent_id, kcc_id, reference_id)`` triple in ``assay_annotations``
-    where an ``Evidence`` row exists, an ``EvidenceCitation`` link is added (or
-    left alone if already present). ``Evidence.n_refs`` is recomputed to reflect
-    the current citation count.
+    For each ``(agent_id, kcc_id, reference_id)`` triple drawn from an
+    annotation's ``annotation_references`` bridge (so *every* cited work counts,
+    not just the position-1 primary) where an ``Evidence`` row exists, an
+    ``EvidenceCitation`` link is added (or left alone if already present).
+    ``Evidence.n_refs`` is recomputed to reflect the current citation count.
 
     Returns counters: ``n_evidence_rows_touched``, ``n_citations_added``.
     """
@@ -711,10 +722,12 @@ def link_evidence_citations(db: Session) -> dict[str, int]:
         select(
             AssayAnnotation.agent_id,
             AssayAnnotation.kcc_id,
-            AssayAnnotation.reference_id,
-        ).where(
+            AnnotationReference.reference_id,
+        )
+        .join(AnnotationReference, AnnotationReference.annotation_id == AssayAnnotation.id)
+        .where(
             AssayAnnotation.agent_id.is_not(None),
-            AssayAnnotation.reference_id.is_not(None),
+            AnnotationReference.reference_id.is_not(None),
         )
     ).all()
 
@@ -768,6 +781,17 @@ def reset_kcad_rows(db: Session) -> None:
     Recomputes `Evidence.n_refs` so curator scores stay self-consistent.
     Curator-authored `Evidence` rows are preserved.
     """
+    # Clear the annotation_references bridge for the annotations we're about to
+    # drop. Done explicitly (not via FK cascade) so reset stays correct even on
+    # engines without ``PRAGMA foreign_keys=ON`` (e.g. the in-memory test DB).
+    kcad_ann_ids = select(AssayAnnotation.id).where(
+        AssayAnnotation.source == KCAD_SOURCE_TAG
+    )
+    db.execute(
+        delete(AnnotationReference).where(
+            AnnotationReference.annotation_id.in_(kcad_ann_ids)
+        )
+    )
     db.execute(delete(AssayAnnotation).where(AssayAnnotation.source == KCAD_SOURCE_TAG))
     db.execute(delete(AgentReference).where(AgentReference.source == KCAD_SOURCE_TAG))
 
@@ -884,15 +908,33 @@ def load_bundle(
     ar_rows = [r for r in bundle.agent_references if r["agent_id"] in existing_agents]
     _upsert(db, AgentReference, ar_rows, pk_cols=["agent_id", "reference_id"])
 
-    # 5. Annotations (bulk insert — append-only).
+    # 5. Annotations (append-only) + their annotation_references bridge. Inserted
+    #    via ORM so each row's autoincrement id is available for the bridge rows.
     if bundle.annotations:
-        # Drop agent_id if the agent doesn't exist (FK SET NULL fallback).
-        clean_anns = []
+        ann_objs: list[AssayAnnotation] = []
+        works_by_obj: list[list[tuple[str, str]]] = []
         for a in bundle.annotations:
-            if a["agent_id"] and a["agent_id"] not in existing_agents:
-                a = {**a, "agent_id": None}
-            clean_anns.append(a)
-        db.execute(AssayAnnotation.__table__.insert(), clean_anns)
+            data = {k: v for k, v in a.items() if k != "_works"}
+            # Drop agent_id if the agent doesn't exist (FK SET NULL fallback).
+            if data["agent_id"] and data["agent_id"] not in existing_agents:
+                data["agent_id"] = None
+            ann_objs.append(AssayAnnotation(**data))
+            works_by_obj.append(a.get("_works", []))
+        db.add_all(ann_objs)
+        db.flush()  # populate ann_objs[*].id
+
+        bridge_rows = [
+            {
+                "annotation_id": obj.id,
+                "position": pos,
+                "reference_id": rid,
+                "id_type": id_type,
+            }
+            for obj, works in zip(ann_objs, works_by_obj)
+            for pos, (rid, id_type) in enumerate(works, start=1)
+        ]
+        if bridge_rows:
+            db.execute(AnnotationReference.__table__.insert(), bridge_rows)
 
     # 6. Cell-level evidence ↔ KCAD reference linkage. Strictly non-destructive:
     #    only inserts citation rows on existing (agent_id, kcc_id) Evidence cells,
