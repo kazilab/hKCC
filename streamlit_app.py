@@ -23,9 +23,12 @@ def _ensure_schema_once() -> bool:
     a DB that lags the code (missing a late column/table) would crash on first
     query. Best-effort and SQLite-only; see :func:`db.session.ensure_sqlite_schema`.
     """
-    from db.session import ensure_sqlite_schema
+    try:
+        from db.session import ensure_sqlite_schema
 
-    ensure_sqlite_schema()
+        ensure_sqlite_schema()
+    except ImportError:
+        return False
     return True
 
 

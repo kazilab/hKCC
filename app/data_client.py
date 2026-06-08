@@ -30,7 +30,6 @@ from db.models import (
     KcadColumnDefinition,
     Reference,
 )
-from db.session import SessionLocal
 
 API_BASE = os.environ.get("API_BASE_URL", "").rstrip("/")
 
@@ -76,6 +75,18 @@ class DataSource(StrEnum):
     MOCKUP = "no_data"
 
 
+def _open_db():
+    """Create a database session lazily.
+
+    Streamlit Cloud may import this module before optional DB driver imports are
+    usable. Keeping ``db.session`` lazy lets API-only/no-data mode render instead
+    of failing the whole app during module import.
+    """
+    from db.session import SessionLocal
+
+    return SessionLocal()
+
+
 def _api_configured() -> bool:
     return bool(API_BASE)
 
@@ -106,13 +117,13 @@ def _db_healthy() -> bool:
     if not _db_configured():
         return False
     try:
-        db = SessionLocal()
+        db = _open_db()
         try:
             db.execute(select(KCC).limit(1))
             return True
         finally:
             db.close()
-    except SQLAlchemyError:
+    except (ImportError, SQLAlchemyError):
         return False
 
 
@@ -158,7 +169,7 @@ def list_kccs() -> list[dict]:
         return _get("/kccs")
     if src is DataSource.NO_DATA:
         return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(select(KCC).order_by(KCC.n)).all()
         return [
@@ -186,7 +197,7 @@ def list_agents() -> list[dict]:
         return _get("/agents")
     if src is DataSource.NO_DATA:
         return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(select(Agent).options(selectinload(Agent.sites)).order_by(Agent.name)).all()
         return [
@@ -216,7 +227,7 @@ def get_matrix() -> dict:
         return _get("/matrix")
     if src is DataSource.NO_DATA:
         return {"kcc_ids": [], "rows": []}
-    db = SessionLocal()
+    db = _open_db()
     try:
         kccs = list(db.scalars(select(KCC).order_by(KCC.n)))
         kcc_ids = [k.id for k in kccs]
@@ -250,7 +261,7 @@ def _evidence_scores() -> dict[str, dict[str, int]]:
         return {}
     if src is DataSource.API:
         return {r["agent_id"]: dict(r.get("scores", {})) for r in get_matrix()["rows"]}
-    db = SessionLocal()
+    db = _open_db()
     try:
         scores: dict[str, dict[str, int]] = {}
         for agent_id, kcc_id, score in db.execute(
@@ -295,7 +306,7 @@ def get_agent(agent_id: str) -> dict | None:
             raise
     if src is DataSource.NO_DATA:
         return None
-    db = SessionLocal()
+    db = _open_db()
     try:
         agent = db.scalar(
             select(Agent)
@@ -408,7 +419,7 @@ def kcc_stats(db: Session | None = None) -> dict[str, dict[str, int]]:
     if get_data_source() is DataSource.NO_DATA:
         return {}
     if db is None:
-        db = SessionLocal()
+        db = _open_db()
         close = True
     else:
         close = False
@@ -437,7 +448,7 @@ def list_assays() -> list[dict]:
         return _get("/assays")
     if src is DataSource.NO_DATA:
         return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(
             select(Assay)
@@ -496,7 +507,7 @@ def list_references() -> list[dict]:
         return [_correct_reference(r) for r in _get("/assays/references")]
     if src is DataSource.NO_DATA:
         return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(
             select(Reference)
@@ -542,7 +553,7 @@ def references_for_agent(agent_id: str) -> list[dict]:
             return [_correct_reference(r) for r in _get(f"/agents/{agent_id}/references")]
         except httpx.HTTPError:
             return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.execute(
             select(Reference, AgentReference.source)
@@ -583,7 +594,7 @@ def annotations_for_assay(assay_id: str, *, limit: int = 50) -> list[dict]:
             return _get(f"/assays/{assay_id}/annotations?limit={limit}")
         except httpx.HTTPError:
             return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(
             select(AssayAnnotation)
@@ -658,7 +669,7 @@ def list_abbreviations() -> list[dict]:
             return _get("/methodology/abbreviations")
         except httpx.HTTPError:
             return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(
             select(KcadAbbreviation).order_by(KcadAbbreviation.abbreviation)
@@ -682,7 +693,7 @@ def list_column_definitions() -> list[dict]:
             return _get("/methodology/columns")
         except httpx.HTTPError:
             return []
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.scalars(
             select(KcadColumnDefinition).order_by(KcadColumnDefinition.column_name)
@@ -708,7 +719,7 @@ def get_source_paper() -> dict | None:
         except httpx.HTTPError:
             return None
     if src is DataSource.DATABASE:
-        db = SessionLocal()
+        db = _open_db()
         try:
             paper = db.get(Reference, "kcad-paper-rigutto-2025")
             if paper is None:
@@ -755,7 +766,7 @@ def list_monograph_volumes() -> list[dict]:
     if src is DataSource.NO_DATA:
         return []
     _, Call, _ = _monograph_imports()
-    db = SessionLocal()
+    db = _open_db()
     try:
         from sqlalchemy import select
 
@@ -787,7 +798,7 @@ def get_monograph_agent_matrix(agent_id: str) -> dict:
     from sqlalchemy import select
 
     Agent, Call, Strength = _monograph_imports()
-    db = SessionLocal()
+    db = _open_db()
     try:
         if not db.get(Agent, agent_id):
             return {}
@@ -843,7 +854,7 @@ def list_monograph_kcc_agents(kcc_id: str, *, call: str = "Yes") -> list[dict]:
     from sqlalchemy import select
 
     Agent, Call, _ = _monograph_imports()
-    db = SessionLocal()
+    db = _open_db()
     try:
         rows = db.execute(
             select(Call.agent_id, Agent.name, Call.monograph_volume)
@@ -887,7 +898,7 @@ def list_foundational_references() -> list[dict]:
 
     from db.models import Reference, ReferenceTag
 
-    db = SessionLocal()
+    db = _open_db()
     try:
         refs = db.scalars(
             select(Reference).where(Reference.source == "foundational")
