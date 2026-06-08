@@ -166,6 +166,7 @@ class Reference(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     journal: Mapped[str] = mapped_column(String(255), nullable=False)
     vol: Mapped[str | None] = mapped_column(String(128))
+    pages: Mapped[str | None] = mapped_column(String(64))
     doi: Mapped[str | None] = mapped_column(String(128))
     pmid: Mapped[str | None] = mapped_column(String(16))
     citations: Mapped[int | None] = mapped_column(Integer)
@@ -370,6 +371,41 @@ class AssayAnnotation(Base):
     )
 
     assay: Mapped["Assay"] = relationship(back_populates="annotations")
+    # Full citation set for this study row. The scalar `reference_id` above is kept
+    # as a denormalized position-1 "primary" pointer for back-compat; this bridge
+    # carries every work the row cites (a KCAD row may cite 1–5 papers).
+    references: Mapped[list["AnnotationReference"]] = relationship(
+        back_populates="annotation",
+        cascade="all, delete-orphan",
+        order_by="AnnotationReference.position",
+    )
+
+
+class AnnotationReference(Base):
+    """Bridge: one row per (annotation, cited work).
+
+    Replaces the single-citation limitation of ``AssayAnnotation.reference_id`` —
+    a KCAD ``filtered_table.csv`` row can weld 1–5 distinct papers into its DOI /
+    PMID / Citation cells. ``position`` preserves the source ordering (position 1
+    is the citation-bearing primary, mirrored onto ``AssayAnnotation.reference_id``).
+    ``id_type`` records which identifier resolved the link (``doi`` / ``pmid`` /
+    ``citation``); ``citation`` rows are best-effort author+year matches and may be
+    absent when no canonical reference could be resolved.
+    """
+
+    __tablename__ = "annotation_references"
+
+    annotation_id: Mapped[int] = mapped_column(
+        ForeignKey("assay_annotations.id", ondelete="CASCADE"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+    reference_id: Mapped[str | None] = mapped_column(
+        ForeignKey("references.id", ondelete="SET NULL"), index=True
+    )
+    id_type: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    annotation: Mapped["AssayAnnotation"] = relationship(back_populates="references")
+    reference: Mapped["Reference | None"] = relationship()
 
 
 class AssayKcSubgroup(Base):

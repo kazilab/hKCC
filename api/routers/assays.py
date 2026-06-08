@@ -117,5 +117,6 @@ def list_annotations(
         .where(AssayAnnotation.assay_id == assay_id)
         .order_by(AssayAnnotation.id)
         .limit(limit)
+        .options(selectinload(AssayAnnotation.references))
     ).all()
     return [AssayAnnotationOut.model_validate(r) for r in rows]

@@ -182,13 +182,23 @@ class IarcMonographMatrixCellOut(BaseModel):
     monograph_volume: str
 
 
+class AnnotationReferenceOut(BaseModel):
+    position: int
+    reference_id: str | None = None
+    id_type: str
+
+    model_config = {"from_attributes": True}
+
+
 class AssayAnnotationOut(BaseModel):
     id: int
     assay_id: str
     kcc_id: str
     secondary_kcc_id: str | None = None
     secondary_kc_raw: str | None = None
+    # Denormalized position-1 primary citation (back-compat); full set in `references`.
     reference_id: str | None = None
+    references: list[AnnotationReferenceOut] = []
     agent_id: str | None = None
     # KC classification
     kc_subgroup: str | None = None

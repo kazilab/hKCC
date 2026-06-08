@@ -590,6 +590,7 @@ def annotations_for_assay(assay_id: str, *, limit: int = 50) -> list[dict]:
             .where(AssayAnnotation.assay_id == assay_id)
             .order_by(AssayAnnotation.id)
             .limit(limit)
+            .options(selectinload(AssayAnnotation.references))
         ).all()
         return [
             {
@@ -598,6 +599,14 @@ def annotations_for_assay(assay_id: str, *, limit: int = 50) -> list[dict]:
                 "secondary_kcc_id": a.secondary_kcc_id,
                 "secondary_kc_raw": a.secondary_kc_raw,
                 "reference_id": a.reference_id,
+                "references": [
+                    {
+                        "position": ar.position,
+                        "reference_id": ar.reference_id,
+                        "id_type": ar.id_type,
+                    }
+                    for ar in a.references
+                ],
                 "agent_id": a.agent_id,
                 "kc_subgroup": a.kc_subgroup,
                 "kc_subgroup2": a.kc_subgroup2,

@@ -33,6 +33,7 @@ def _ensure_columns(engine) -> None:
         "references": [
             ("needs_split", "BOOLEAN NOT NULL DEFAULT 0"),
             ("raw_citation", "TEXT"),
+            ("pages", "VARCHAR(64)"),
         ],
     }
     with engine.begin() as conn:
