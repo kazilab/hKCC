@@ -12,6 +12,23 @@ from app.theme import apply_theme, init_tweak_defaults
 init_sentry("streamlit")
 init_tweak_defaults()
 
+
+@st.cache_resource
+def _ensure_schema_once() -> bool:
+    """Heal a committed/older SQLite DB to the current model (once per process).
+
+    Streamlit Cloud reads the committed ``hkcc.db`` without running migrations, so
+    a DB that lags the code (missing a late column/table) would crash on first
+    query. Best-effort and SQLite-only; see :func:`db.session.ensure_sqlite_schema`.
+    """
+    from db.session import ensure_sqlite_schema
+
+    ensure_sqlite_schema()
+    return True
+
+
+_ensure_schema_once()
+
 APP_ROOT = Path(__file__).resolve().parent
 PAGES_DIR = APP_ROOT / "app" / "pages"
 
