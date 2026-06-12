@@ -7,12 +7,11 @@
 > decision-making.* Database (Oxford) **2025**, article `baaf026`.
 > DOI: [`10.1093/database/baaf026`](https://doi.org/10.1093/database/baaf026).
 
-Definitions for every column in `suppl_data/filtered_table.csv`,
 reproduced verbatim from KCManuscript Supplementary Table 2.
 
 Programmatic access:
 
-- API: `GET /api/v1/methodology/columns`
+- API: `GET /api/routers/methodology/columns`
 - Streamlit UI: `app/pages/9a_Methodology.py`
 - DB table: `kcad_column_definitions`
 
