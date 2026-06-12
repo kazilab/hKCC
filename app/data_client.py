@@ -500,6 +500,65 @@ def _correct_reference(ref: dict) -> dict:
     return ref
 
 
+def _clean_title(value: object) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _is_placeholder_title(value: object) -> bool:
+    title = _clean_title(value)
+    return title in {"", "-", "–", "—"}
+
+
+def _literature_dedupe_key(ref: dict) -> tuple[object, str] | None:
+    title = _clean_title(ref.get("title"))
+    if _is_placeholder_title(title):
+        return None
+    return (ref.get("year"), title.casefold())
+
+
+def _merge_values(first: list, second: list) -> list:
+    return list(dict.fromkeys([*first, *second]))
+
+
+def _reference_score(ref: dict) -> int:
+    """Prefer the duplicate row with richer display metadata."""
+    score = 0
+    for field in ("doi", "pmid", "url", "article_id", "journal", "authors", "vol"):
+        value = _clean_title(ref.get(field))
+        if value and not _is_placeholder_title(value):
+            score += 1
+    score += len(ref.get("tags", []))
+    score += len(ref.get("kcc_ids", []))
+    return score
+
+
+def unique_literature_references(refs: list[dict]) -> list[dict]:
+    """Filter and de-duplicate references for public Literature display.
+
+    The database keeps separate Reference rows because foreign keys may need
+    stable source-specific IDs. The Literature page only needs one visible card
+    per paper, so rows with the same normalized (year, title) collapse together.
+    """
+    rows_by_key: dict[tuple[object, str], dict] = {}
+    order: list[tuple[object, str]] = []
+    for ref in refs:
+        key = _literature_dedupe_key(ref)
+        if key is None:
+            continue
+        existing = rows_by_key.get(key)
+        if existing is None:
+            rows_by_key[key] = dict(ref)
+            order.append(key)
+            continue
+
+        winner = dict(ref) if _reference_score(ref) > _reference_score(existing) else dict(existing)
+        winner["tags"] = _merge_values(existing.get("tags", []), ref.get("tags", []))
+        winner["kcc_ids"] = _merge_values(existing.get("kcc_ids", []), ref.get("kcc_ids", []))
+        winner["citations"] = max(existing.get("citations") or 0, ref.get("citations") or 0)
+        rows_by_key[key] = winner
+    return [rows_by_key[key] for key in order]
+
+
 @_cached()
 def list_references() -> list[dict]:
     src = get_data_source()
@@ -537,6 +596,11 @@ def list_references() -> list[dict]:
         ]
     finally:
         db.close()
+
+
+@_cached()
+def list_literature_references() -> list[dict]:
+    return unique_literature_references(list_references())
 
 
 @_cached()
@@ -655,7 +719,7 @@ def list_assays_count() -> int:
 
 
 def list_references_count() -> int:
-    return len(list_references())
+    return len(list_literature_references())
 
 
 @_cached()
