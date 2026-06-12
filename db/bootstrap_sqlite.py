@@ -81,6 +81,11 @@ def main() -> int:
 
         import_10yr_kcc.run(reset=True)
 
+    if not args.seed_only:
+        from pipelines import import_extended_kccs
+
+        import_extended_kccs.run(reset=True)
+
     print(f"SQLite database ready: {db_path} ({_format_size(db_path)})")
     return 0
 
