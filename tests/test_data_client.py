@@ -1,6 +1,12 @@
 import pytest
 
-from app.data_client import DataSource, _correct_reference, get_data_source, list_kccs
+from app.data_client import (
+    DataSource,
+    _correct_reference,
+    get_data_source,
+    list_kccs,
+    unique_literature_references,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -32,3 +38,43 @@ def test_corrects_de_coster_year_typo():
 
     assert _correct_reference(ref)["year"] == 2008
     assert _correct_reference(ref)["title"] == "De Coster 2008  Paz-y-Mino 2007"
+
+
+def test_unique_literature_references_hides_placeholders_and_collapses_duplicates():
+    refs = [
+        {
+            "id": "a",
+            "year": 2020,
+            "title": "Same Paper",
+            "authors": "A",
+            "journal": "J",
+            "doi": None,
+            "tags": ["KCAD"],
+            "kcc_ids": ["KC1"],
+        },
+        {
+            "id": "b",
+            "year": 2020,
+            "title": "  Same   Paper ",
+            "authors": "B",
+            "journal": "J",
+            "doi": "10.1/example",
+            "tags": ["Review"],
+            "kcc_ids": ["KC2"],
+        },
+        {
+            "id": "placeholder",
+            "year": 2021,
+            "title": "—",
+            "authors": "Unknown",
+            "journal": "—",
+            "tags": [],
+            "kcc_ids": [],
+        },
+    ]
+
+    visible = unique_literature_references(refs)
+
+    assert [r["id"] for r in visible] == ["b"]
+    assert visible[0]["tags"] == ["KCAD", "Review"]
+    assert visible[0]["kcc_ids"] == ["KC1", "KC2"]
