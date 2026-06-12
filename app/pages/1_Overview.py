@@ -10,7 +10,7 @@ from app.data_client import (
     list_agents,
     list_assays_count,
     list_kccs,
-    list_references,
+    list_literature_references,
     list_references_count,
 )
 from app.page_shell import global_search_query, init_page
@@ -161,7 +161,7 @@ if not featured_ids:
 st.markdown("---")
 
 # Recent literature
-refs_all = list_references()
+refs_all = list_literature_references()
 if search_q:
     refs_all = [
         r

@@ -3,12 +3,12 @@
 import streamlit as st
 
 from app.components.ref_card import render_ref_cards
-from app.data_client import list_references
+from app.data_client import list_literature_references
 from app.page_shell import init_page
 
 init_page("literature")
 
-refs = list_references()
+refs = list_literature_references()
 tags = ["all"] + sorted({t for r in refs for t in r.get("tags", [])})
 
 source_counts: dict[str, int] = {}
