@@ -1,7 +1,7 @@
 # hKCC - Key Characteristics of Human Carcinogens
 
 <!-- PyPI version badge -->
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://hu.kcc.streamlit.app)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://hu-kcc.streamlit.app)
 <!--[![PyPI version](https://img.shields.io/pypi/v/ExposoGraph.svg)](https://pypi.org/project/ExposoGraph/)-->
 <!--[![Documentation Status](https://readthedocs.org/projects/ExposoGraph/badge/?version=latest)](https://ExposoGraph.readthedocs.io/en/latest/?badge=latest)-->
 <!-- [![ResearchSquare](https://img.shields.io/badge/ResearchSquare-rs--9202489%2Fv1-00A0E0.svg)](https://www.researchsquare.com/article/rs-9202489/v1) -->
