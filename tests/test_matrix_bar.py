@@ -1,5 +1,5 @@
-from app.components.matrix import matrix_heatmap_html
-from app.theme import apply_theme
+from hkcc.app.components.matrix import matrix_heatmap_html
+from hkcc.app.theme import apply_theme
 
 apply_theme(inject=False)
 

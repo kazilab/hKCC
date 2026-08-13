@@ -2,14 +2,14 @@
 
 from types import SimpleNamespace
 
-from api.citations import (
+from hkcc.api.citations import (
     agent_bibtex,
     reference_bibtex,
     reference_ris,
     resource_bibtex,
     resource_ris,
 )
-from db.config import APP_VERSION
+from hkcc.db.config import APP_VERSION
 
 
 def _braces_balanced(text: str) -> bool:
@@ -77,3 +77,53 @@ def test_resource_ris_has_tag_and_year():
     assert f"ET  - {APP_VERSION}" in out
     assert "PY  - 2026" in out
     assert "ER  -" in out
+
+
+# --- RIS well-formedness -----------------------------------------------------
+
+RIS_TAG = __import__("re").compile(r"^[A-Z][A-Z0-9]  - ")
+
+
+def _ris_lines(text: str) -> list[str]:
+    return [ln for ln in text.splitlines() if ln.strip()]
+
+
+def test_resource_ris_every_line_is_a_valid_tag():
+    """Regression: 'Licence  - CC-BY-4.0' is not a RIS tag (they are 2 chars)."""
+    lines = _ris_lines(resource_ris("1.2.3"))
+    bad = [ln for ln in lines if not RIS_TAG.match(ln)]
+    assert not bad, f"malformed RIS lines: {bad}"
+    assert lines[0] == "TY  - DATA"
+    assert lines[-1].startswith("ER  -")
+
+
+def test_resource_ris_has_author_and_url():
+    text = resource_ris("1.2.3")
+    assert any(ln.startswith("AU  - ") for ln in _ris_lines(text)), "no author line"
+    assert any(ln.startswith("UR  - ") for ln in _ris_lines(text)), "no URL line"
+
+
+def test_reference_ris_every_line_is_a_valid_tag():
+    ref = SimpleNamespace(
+        id="r1", authors="Smith MT", title="A title", journal="J", year=2016,
+        vol="12", doi="10.1000/xyz", pmid=None,
+    )
+    lines = _ris_lines(reference_ris(ref))
+    bad = [ln for ln in lines if not RIS_TAG.match(ln)]
+    assert not bad, f"malformed RIS lines: {bad}"
+    assert "DO  - 10.1000/xyz" in lines
+
+
+def test_citations_do_not_hardcode_a_year():
+    """The year was pinned to 2026 in the source."""
+    from datetime import UTC, datetime
+
+    year = str(datetime.now(UTC).year)
+    assert f"year = {{{year}}}" in resource_bibtex("1.0")
+    assert f"PY  - {year}" in resource_ris("1.0")
+
+
+def test_resource_bibtex_carries_author_and_url():
+    out = resource_bibtex("1.0")
+    assert "author = {" in out
+    assert "\\url{" in out

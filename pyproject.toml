@@ -4,17 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hkcc"
-version = "0.0.5"
+version = "0.0.10"
 description = "Key Characteristics of Human Carcinogens — platform"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11,<3.14"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.32.0",
   "sqlalchemy>=2.0.36",
-  "alembic>=1.14.0",
-  "psycopg[binary]>=3.2.0",
   "pydantic[email]>=2.10.0",
   "pydantic-settings>=2.6.0",
   "httpx>=0.28.0",
@@ -32,27 +37,42 @@ dev = [
   "httpx>=0.28.0",
 ]
 
+[project.urls]
+Homepage = "https://hu-kcc.streamlit.app/"
+Source = "https://github.com/kazilab/hkcc"
+Documentation = "https://github.com/kazilab/hkcc#readme"
+
+[project.scripts]
+hkcc = "hkcc.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["db*", "api*", "app*", "pipelines*"]
+include = ["hkcc*"]
+# Explicit: hkcc/data holds the dataset, not Python modules. It is shipped via
+# package-data below, so it must not be auto-detected as a namespace package.
+namespaces = false
 
 [tool.setuptools.package-data]
-app = ["py.typed"]
+# The dataset ships inside the package; Streamlit pages are data files too
+# (they are executed by path, not imported).
+hkcc = ["data/*.db", "py.typed"]
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+# Build artefacts contain copies of the sources; linting them double-reports.
+extend-exclude = ["build", "dist", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 # HTML/SVG string builders and Streamlit page bodies use long inline lines by design.
-"app/components/*.py" = ["E501"]
-"app/pages/*.py" = ["E501"]
-"app/utils/evidence.py" = ["E501"]
-"app/theme.py" = ["E501"]
-"app/data_client.py" = ["E501"]
+"hkcc/app/components/*.py" = ["E501"]
+"hkcc/app/pages/*.py" = ["E501"]
+"hkcc/app/utils/evidence.py" = ["E501"]
+"hkcc/app/theme.py" = ["E501"]
+"hkcc/app/data_client.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

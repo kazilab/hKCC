@@ -1,5 +1,5 @@
-from api.main import app
-from db.models import (
+from hkcc.api.main import app
+from hkcc.db.models import (
     KCC,
     Agent,
     AgentReference,
@@ -12,7 +12,7 @@ from db.models import (
     KcadColumnDefinition,
     Reference,
 )
-from db.session import get_db
+from hkcc.db.session import get_db
 
 
 def _seed(client):
@@ -120,8 +120,13 @@ def test_get_assay_annotations(client):
     _seed_kcad(client)
     r = client.get("/api/v1/assays/kcad-ames-assay/annotations")
     assert r.status_code == 200
-    rows = r.json()
-    assert len(rows) == 1
+    # Paginated: the endpoint used to return a bare list truncated at 500 with
+    # no way to reach the rest, so a large assay was silently cut off.
+    page = r.json()
+    assert page["total"] == 1
+    assert page["count"] == 1
+    assert page["next_cursor"] is None
+    rows = page["items"]
     assert rows[0]["monograph_chem"] == "Benzene"
     assert rows[0]["kcc_id"] == "kcc-01"
 
@@ -252,9 +257,7 @@ def test_assay_carries_subgroups_and_designs(client):
     assert r.status_code == 200
     a = r.json()
     assert a["subgroups"] == [{"kcc_id": "kcc-01", "subgroup": "Gene mutation"}]
-    assert a["study_designs"] == [
-        {"kcc_id": "kcc-01", "design": "in_vitro", "source": "stable5"}
-    ]
+    assert a["study_designs"] == [{"kcc_id": "kcc-01", "design": "in_vitro", "source": "stable5"}]
     assert a["source_ref_id"] is None  # not set on this seeded row
 
 
@@ -288,7 +291,7 @@ def test_list_assays_filter_by_subgroup(client):
 
 def _seed_monograph(client):
     """Seed minimal Rusyn 2024 rows to exercise the /monograph endpoints."""
-    from db.models import IarcMonographKcCall, IarcMonographKcStrength
+    from hkcc.db.models import IarcMonographKcCall, IarcMonographKcStrength
 
     db = next(app.dependency_overrides[get_db]())
     # The Rusyn 2024 reference itself.
@@ -302,7 +305,6 @@ def _seed_monograph(client):
             vol="198(1):141-154",
             doi="10.1093/toxsci/kfad134",
             url="https://doi.org/10.1093/toxsci/kfad134",
-            pdf_path="references/kcc-10yr/KCC-10yr.pdf",
             source="foundational",
         )
     )

@@ -11,7 +11,7 @@ def test_assay_summary_table_parsing():
         }
     }
     # Simulate parsing logic inline (same as function expects full API response)
-    from pipelines.clients import pubchem as pc
+    from hkcc.pipelines.clients import pubchem as pc
 
     class FakeResp:
         def raise_for_status(self):

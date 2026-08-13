@@ -6,9 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from api.main import app
-from db.models import Base
-from db.session import get_db
+from hkcc.api.main import app
+from hkcc.db.models import Base
+from hkcc.db.session import get_db
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 

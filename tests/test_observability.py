@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from api import observability
+from hkcc.api import observability
 
 
 @pytest.fixture(autouse=True)

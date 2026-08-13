@@ -1,0 +1,67 @@
+# Changelog
+
+All notable changes to hKCC. Dataset and code are versioned together; the
+version lives in `pyproject.toml` and nothing else hardcodes it.
+
+## [0.0.10]
+
+Consolidates the pre-publication review: two data sources, a package that ships
+its own dataset, and documentation that the test suite keeps honest.
+
+
+### Added
+- **IARC Volume 100 Group 1 re-review** (84 agents) from Krewski et al. 2019,
+  Sci. Pub. 165 Ch. 22, Fig. 22.4. Brings asbestos, arsenic, tobacco smoking,
+  formaldehyde, aflatoxins, crystalline silica and the rest of the classic Group 1
+  set into the database. Group 1 agents: 7 -> 91.
+- Second evidence track, tagged `[vol100-kc]`, with its own documented derivation
+  (colour intensity = number of information sources) and its own tests.
+- `hkcc` console entry point (`hkcc`, `hkcc api`, `hkcc info`) and a PyPI-installable
+  package carrying the dataset inside it.
+- Controlled `agent_type` vocabulary, enforced by tests.
+- CI: lint and tests on Python 3.11-3.13, plus a packaging job that proves the
+  wheel ships the dataset and serves it from any directory.
+- Landing page at `docs/index.html`.
+
+### Changed
+- Restructured into a single `hkcc/` package; the dataset moved to
+  `hkcc/data/hkcc.db` and ships with the distribution.
+- **Never-assessed (agent, KC) pairs no longer render as 0.** The matrix, the API
+  and the CSV exports omit them; the UI marks them "not assessed". Previously
+  ~716 pairs asserted negative evidence that no source had reported.
+- `docs/KCC_EVIDENCE_RULES.md` rewritten to describe how scores were actually
+  derived, and made verifiable: tests recompute every score from the source tables.
+- Merged four duplicate agent records; resolved TCAB's conflicting IARC group.
+- Reclassified agents that were filed as "Industrial chemical" by an import
+  default (night shift work, welding, coffee, processed meat, opium, and three
+  pesticides).
+- Normalised agent names: ALL-CAPS source labels, Greek letters, and two source
+  typos corrected (Molybdenum trioxide, isobutyl nitrite).
+- Dataset exports now include the cell-level citation links.
+
+### Fixed
+- Rate limiting on `POST /contribute` could be bypassed by rotating
+  `X-Forwarded-For`; proxy headers are now trusted only when configured.
+- The landing page featured six agent ids that no longer existed, rendering an
+  empty section and showing benzene with zero evidence.
+- Two pages (Methodology, IARC matrix) were unreachable from navigation.
+- Malformed RIS citation export; missing author and URL fields.
+- `pdf_path` leaked server paths through the public API and was bound to the
+  wrong references; removed.
+
+### Removed
+- One-off import pipelines that depended on source files never distributed with
+  the repository, and the container/Postgres scaffolding that was never built.
+- A 1.2 MB minified bundle in `docs/` that carried its own stale copy of the data.
+
+---
+
+### Bumping the version
+
+`pyproject.toml` is the source of truth — `hkcc/db/config.py` reads it, so the
+app, API, `/health` and citation exports all follow automatically. Three files
+carry a copy that must be updated by hand:
+
+- `CITATION.cff`
+- `docs/index.html` (footer)
+- `docs/DATABASE_TABLES.md` (example release tag)

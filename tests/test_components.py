@@ -1,6 +1,6 @@
-from app.components.matrix import matrix_heatmap_html
-from app.theme import apply_theme
-from app.utils.evidence import kcc_coverage
+from hkcc.app.components.matrix import matrix_heatmap_html
+from hkcc.app.theme import apply_theme
+from hkcc.app.utils.evidence import kcc_coverage
 
 
 def test_matrix_html_includes_agent():

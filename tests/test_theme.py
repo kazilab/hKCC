@@ -1,6 +1,6 @@
 """Theme factory — paper default, dark override."""
 
-from app.theme import DARK_THEME, PAPER_THEME, get_theme
+from hkcc.app.theme import DARK_THEME, PAPER_THEME, get_theme
 
 
 def test_get_theme_paper():
@@ -17,6 +17,6 @@ def test_get_theme_dark():
 
 
 def test_paper_is_default_module_palette():
-    from app.theme import THEME
+    from hkcc.app.theme import THEME
 
     assert THEME["paper"] == PAPER_THEME["paper"]

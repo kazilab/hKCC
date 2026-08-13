@@ -2,7 +2,7 @@
 
 import pytest
 
-from db import config as db_config
+from hkcc.db import config as db_config
 
 
 @pytest.fixture(autouse=True)

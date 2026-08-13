@@ -1,6 +1,6 @@
 import pytest
 
-from app.data_client import (
+from hkcc.app.data_client import (
     DataSource,
     _correct_reference,
     get_data_source,
@@ -13,7 +13,7 @@ from app.data_client import (
 def _force_no_data(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'missing.db'}")
     monkeypatch.delenv("API_BASE_URL", raising=False)
-    from app import data_client
+    from hkcc.app import data_client
 
     data_client._api_healthy.cache_clear()
     data_client._db_healthy.cache_clear()

@@ -1,5 +1,5 @@
-from app.components.ref_card import ref_card_html
-from app.theme import apply_theme
+from hkcc.app.components.ref_card import ref_card_html
+from hkcc.app.theme import apply_theme
 
 apply_theme(inject=False)
 

@@ -1,0 +1,70 @@
+cff-version: 1.2.0
+title: "hKCC: Key Characteristics of Human Carcinogens"
+message: "If you use this dataset or software, please cite it as below."
+type: dataset
+authors:
+  - name: "Data Analysis Team, KaziLab.se"
+    email: hkcc@kazilab.se
+abstract: >-
+  An open, versioned database mapping carcinogenic agents to the ten key
+  characteristics of carcinogens, alongside five candidate cross-cutting
+  mechanistic domains that qualify an observation without being scored
+  themselves. Evidence scores are derived from published IARC Monograph
+  analyses by documented, deterministic rules, and each score records the
+  derivation that produced it. Covers the Volume 100 Group 1 re-review
+  (Krewski et al. 2019) and Volumes 112-130 (Rusyn et al. 2024). The 0-4 scale
+  is ordinal and the two sources are not interchangeable; see
+  docs/KCC_EVIDENCE_RULES.md before comparing scores. Data are licensed
+  CC-BY-4.0; the accompanying software is MIT.
+keywords:
+  - carcinogenesis
+  - key characteristics of carcinogens
+  - IARC Monographs
+  - mechanistic toxicology
+  - cancer hazard identification
+# This entry cites the dataset (type: dataset above), so the licence is the
+# data licence. The software in the same repository is MIT — see LICENSE.
+license: CC-BY-4.0
+license-url: "https://creativecommons.org/licenses/by/4.0/"
+repository-code: "https://github.com/kazilab/hkcc"
+url: "https://hu-kcc.streamlit.app/"
+version: 0.0.10
+references:
+  - type: article
+    title: >-
+      Ten years of using key characteristics of human carcinogens to organize
+      and evaluate mechanistic evidence in IARC Monographs Volumes 112-130
+    authors:
+      - family-names: Rusyn
+        given-names: Ivan
+      - family-names: Wright
+        given-names: Fred A.
+      - family-names: Smith
+        given-names: Martyn T.
+    year: 2024
+    journal: "Toxicological Sciences"
+    volume: "198"
+    doi: 10.1093/toxsci/kfad134
+  - type: article
+    title: "Development of a database on key characteristics of human carcinogens"
+    authors:
+      - family-names: Al-Zoughool
+        given-names: Mustafa
+      - family-names: Krewski
+        given-names: Daniel
+    year: 2019
+    journal: "Journal of Toxicology and Environmental Health, Part B"
+    volume: "22"
+    doi: 10.1080/10937404.2019.1642593
+  - type: article
+    title: >-
+      Mapping assays to the key characteristics of carcinogens to support
+      decision-making
+    authors:
+      - family-names: Rigutto
+        given-names: Giovanna
+      - family-names: Smith
+        given-names: Martyn T.
+    year: 2025
+    journal: "Database (Oxford)"
+    doi: 10.1093/database/baaf026

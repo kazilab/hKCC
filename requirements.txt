@@ -1,12 +1,12 @@
 # Streamlit app (streamlit_app.py) — Streamlit Community Cloud / pip install -r requirements.txt
-# Set secrets: DATABASE_URL, API_BASE_URL (optional; uses API when reachable)
+# No secrets required: the app reads the committed hkcc.db.
+# Optional: API_BASE_URL (prefers a running hKCC API), OPENALEX_MAILTO, EPA_CCTE_API_KEY, SENTRY_DSN
 
 streamlit>=1.40.0
 pandas>=2.2.0
 httpx>=0.28.0
 
-# DB fallback when API is unavailable (direct SQLAlchemy access)
+# Direct SQLAlchemy access to the bundled SQLite database
 sqlalchemy>=2.0.36
-psycopg[binary]>=3.2.0
 pydantic>=2.10.0
 pydantic-settings>=2.6.0

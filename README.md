@@ -1,61 +1,83 @@
 # hKCC - Key Characteristics of Human Carcinogens
 
-Production platform for mapping mechanistic evidence linking carcinogenic agents to the 14 Key Characteristics (KCC) framework.
+An open database mapping mechanistic evidence from carcinogenic agents to the ten Key Characteristics (KCC) framework, with a second layer of cross-cutting candidate domains.
+
+> **Status: early development (v0.0.x).** The dataset, the schema and the API are all
+> still changing between releases. Scores are derived from published source tables by
+> the documented rules in [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md) —
+> read them before relying on a value.
 
 | Layer | Stack |
 |-------|--------|
 | Frontend | Streamlit (multi-page, sidebar nav) |
 | API | FastAPI `/api/v1/*` |
-| Database | SQLite by default, PostgreSQL 16 optional, SQLAlchemy |
-| Pipelines | Python (`pipelines/`) |
+| Database | SQLite (`hkcc.db`, ships inside the package), SQLAlchemy |
+| Pipelines | Python (`hkcc/pipelines/`) |
 
+**Live app:** <https://hu-kcc.streamlit.app/>  
 **Version:** defined once in [`pyproject.toml`](pyproject.toml) (`[project].version`)  
 **Developed by:** Data Analysis Team @KaziLab.se  
 **Contact:** hkcc@kazilab.se  
 **Licenses:** data [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) · code MIT
 
-The version is the single source of truth in `pyproject.toml`; `db/config.py` derives
+The version is the single source of truth in `pyproject.toml`; `hkcc/db/config.py` derives
 `APP_VERSION` from it (and exposes `APP_DEVELOPER`, `APP_CONTACT_EMAIL`). Nothing else
 hardcodes the version — bump it in one place.
 
 Documentation: [scope decisions](docs/SCOPE.md) · [database tables](docs/DATABASE_TABLES.md) · [evidence rules](docs/KCC_EVIDENCE_RULES.md)
 
-## Quick start
+## Install
+
+Try it first at **<https://hu-kcc.streamlit.app/>** — nothing to install.
+
+To run it yourself:
 
 ```bash
+pip install hkcc
+hkcc            # Streamlit app on :8501
+hkcc api        # read API on :8000/docs
+hkcc info       # version + dataset location
+```
+
+The dataset ships inside the package — `pip install hkcc` gives you all ten KCCs,
+171 agents, 844 evidence cells, 573 assays, 1,171 references and the IARC
+Monograph matrix, with no build step, no database server and no `.env` file.
+
+**Coverage.** The mechanistic evidence derives from two published sources: the
+IARC Monograph **Volume 100** Group 1 re-review (Krewski et al. 2019) and
+**Volumes 112–130** (Rusyn et al. 2024). Each score records which source produced
+it, and the two use different derivation rules — see
+[`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md). Volumes 107–111 are
+not covered by either.
+
+**Known limitations.** [`docs/ROADMAP.md`](docs/ROADMAP.md) records the limitations
+that are known and deliberate — chiefly that the 0–4 scale carries three different
+derivations, and that coverage counts do not yet separate strength from direction
+and IARC data role. Read it before using scores comparatively.
+
+## Development
+
+```bash
+git clone https://github.com/kazilab/hkcc && cd hkcc
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-python -m db.bootstrap_sqlite --replace
-streamlit run streamlit_app.py  # :8501
-uvicorn api.main:app --reload   # :8000/docs, optional
+streamlit run hkcc/streamlit_app.py   # :8501
+uvicorn hkcc.api.main:app --reload    # :8000/docs
 pytest
 ```
 
-The default local backend is a single SQLite file (`hkcc.db`), which is enough
-for read-only browsing and local API use. No `.env` file is required for the
-default SQLite mode. The SQLite bootstrap is
-reference-backed: it seeds only the KCC framework definitions, then imports
-KCAD and IARC data. PostgreSQL remains supported for production or multi-user
-deployments:
+To read a different SQLite file, set `DATABASE_URL`:
 
 ```bash
-cd infra && docker compose up -d db
-cd ..
-export DATABASE_URL=postgresql+psycopg://hkcc:hkcc@localhost:5432/hkcc
-alembic -c db/alembic.ini upgrade head
-python -m db.seed.load_seed
-python -m pipelines.import_kcad --with-supplementary --reset-kcad
-python -m pipelines.import_10yr_kcc
-uvicorn api.main:app --reload   # :8000/docs
-streamlit run streamlit_app.py  # :8501
-pytest
+export DATABASE_URL="sqlite:////absolute/path/to/hkcc.db"
 ```
 
 ## API (v1)
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/v1/kccs` | List KCCs |
+| `GET /api/v1/kccs` | The ten established KCCs (reference ontology) |
+| `GET /api/v1/domains` | Cross-cutting candidate domains (EMD1–4, CD5) |
 | `GET /api/v1/agents` | List agents |
 | `GET /api/v1/agents/{id}/references` | KCAD references linked to an agent |
 | `GET /api/v1/matrix` | Evidence matrix |
@@ -73,76 +95,85 @@ pytest
 | `GET /api/v1/monograph/kcc/{id}` | Agents with a given call for a given KC |
 | `POST /api/v1/contribute` | Submit score proposal (queued for v2 curation) |
 
-## KCAD data integration
+## Two layers
 
-The Key Characteristics Assay Database (**KCAD**) data shipped in
-`suppl_data/` is fully integrated. Every KCAD-derived row in the database
-carries a `source_ref_id` pointing back to the canonical publication record:
+The ten established KCCs (Smith et al. 2016) are the reference ontology and the only
+thing carrying an `evidence.score`. Alongside them sit five **candidate mechanistic
+domains** — EMD1–EMD4 from Kazi et al., plus CD5 (gap-junctional communication) as a
+platform-level candidate. Domains qualify *how* an observation arose and parent onto one
+or more KCCs; they never score independently, so the same experiment cannot be counted
+twice. See [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md).
+
+## Data sources
+
+Every derived row in `hkcc.db` carries a `source_ref_id` pointing back to the
+canonical publication record it came from. Two peer-reviewed datasets underpin
+the database.
+
+**KCAD — Key Characteristics Assay Database.** Source of the assay library, the
+study-level annotations, the abbreviation glossary and the column dictionary
+(`source_ref_id = kcad-paper-rigutto-2025`).
 
 > **Rigutto G, McHale CM, Singam ERA, Rana I, Zhang L, Smith MT.**
 > *Mapping assays to the key characteristics of carcinogens to support
 > decision-making.* Database (Oxford) **2025**, article `baaf026`.
 > DOI: [`10.1093/database/baaf026`](https://doi.org/10.1093/database/baaf026).
 
-Companion docs:
-
-- [`docs/KCAD_DATA_DICTIONARY.md`](docs/KCAD_DATA_DICTIONARY.md) — column-by-column
-  definitions of `filtered_table.csv` (auto-generated from STable2).
-- [`docs/KCAD_ABBREVIATIONS.md`](docs/KCAD_ABBREVIATIONS.md) — 49 abbreviations
-  used in the dataset (auto-generated from STable3).
-
-Run the full importer once Postgres + Alembic are up:
-
-```bash
-python -m pipelines.import_kcad --with-supplementary --reset-kcad
-# or, equivalently, two separate calls:
-python -m pipelines.import_kcad --reset-kcad
-python -m pipelines.import_kcad_supplementary
-```
-
-## IARC 10-year retrospective integration
-
-The Rusyn et al. 2024 supplementary tables (`references/kcc-10yr/`) are
-ingested into two paper-authoritative tables — `iarc_monograph_kc_calls`
-(per-volume, per-model-system Yes/No/Equivocal/Protective calls) and
-`iarc_monograph_kc_strength` (per-(agent, KC) standardized Strong/Moderate/
-Weak labels). Both anchor to a canonical Reference row
-`rusyn2024-tenyears` (DOI [`10.1093/toxsci/kfad134`](https://doi.org/10.1093/toxsci/kfad134))
-that also points to the local PDF copy.
+**IARC 10-year retrospective.** Source of `iarc_monograph_kc_calls` (per-volume,
+per-model-system Yes/No/Equivocal/Protective calls), `iarc_monograph_kc_strength`
+(per-(agent, KC) standardized labels) and the derived `evidence` scores
+(`source_ref_id = rusyn2024-tenyears`).
 
 > **Rusyn I, Wright FA, Smith MT, et al.** *Ten years of using key
 > characteristics of human carcinogens to organize and evaluate mechanistic
 > evidence in IARC Monographs Volumes 112–130.* Toxicological Sciences
 > 198(1):141–154 (2024).
+> DOI: [`10.1093/toxsci/kfad134`](https://doi.org/10.1093/toxsci/kfad134).
 
-```bash
-python -m pipelines.import_10yr_kcc
-```
+See [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md) for the algorithm
+that maps the published cell labels to the 0–4 `evidence.score` scale, and
+[`docs/DATABASE_TABLES.md`](docs/DATABASE_TABLES.md) for a table-by-table account
+of which source populated what.
 
-The importer also seeds 15 foundational references from
-`db/seed/refs/foundational.json` (Smith 2016, Guyton 2018, Smith 2020,
-Rieswijk 2019, Tcheremenskaia 2021, …) — every entry carries a DOI/URL plus a
-`pdf_path` so the **About → Methodology** page can hyperlink directly to the
-PDF in `references/`. See [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md)
-for the deterministic algorithm that maps the paper's cell labels to the
-0–4 `evidence.score` scale.
+Companion references generated from the database:
+
+- [`docs/KCAD_DATA_DICTIONARY.md`](docs/KCAD_DATA_DICTIONARY.md) — column-by-column
+  definitions of the KCAD annotation table.
+- [`docs/KCAD_ABBREVIATIONS.md`](docs/KCAD_ABBREVIATIONS.md) — 49 abbreviations
+  used in the dataset.
+
+Both are regenerated with `python -m hkcc.pipelines.gen_kcad_docs`.
 
 ## Repo layout
 
 ```
-app/          Streamlit UI
-api/          FastAPI service
-db/           Models, Alembic, seed
-pipelines/    Export, external API clients (`pipelines/clients/`), batch stubs
-infra/        Optional Docker Compose and self-hosted deploy guide
-tests/        pytest
-docs/         Scope & architecture notes
+hkcc/
+  app/            Streamlit UI (pages, components, theme)
+  api/            FastAPI service
+  db/             Models, session, config
+  pipelines/      Export, maintenance scripts, external API clients
+  data/hkcc.db    The dataset — single source of truth
+  cli.py          `hkcc` console entry point
+  streamlit_app.py
+tests/            pytest
+docs/             Scope & architecture notes
+```
+
+`hkcc/data/hkcc.db` is the only place data lives. There are no seed files
+mirroring its contents, so nothing can drift out of sync with it.
+`docs/KCAD_DATA_DICTIONARY.md` and `docs/KCAD_ABBREVIATIONS.md` are generated
+*from* the database:
+
+```bash
+python -m hkcc.pipelines.gen_kcad_docs
 ```
 
 ## Dataset releases
 
 ```bash
-python -m pipelines.export_release   # --tag defaults to the pyproject.toml version
+python -m hkcc.pipelines.export_release   # --tag defaults to the pyproject.toml version
 ```
 
-Exports land in `exports/<tag>/` (CSV, JSON manifest, Parquet). Archive to Zenodo manually until DOI automation lands.
+Exports land in `exports/<tag>/` under the repo root (or the working directory
+when running from an installed package; `HKCC_EXPORT_DIR` overrides both) as
+CSV, a JSON manifest and Parquet. Archive to Zenodo manually until DOI automation lands.
