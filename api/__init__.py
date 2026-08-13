@@ -1,1 +1,0 @@
-"""hKCC FastAPI service."""
