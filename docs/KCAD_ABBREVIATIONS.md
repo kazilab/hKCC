@@ -8,12 +8,12 @@
 > DOI: [`10.1093/database/baaf026`](https://doi.org/10.1093/database/baaf026).
 
 49 abbreviations used throughout the KCAD dataset,
-reproduced verbatim from KCManuscript Supplementary Table 3.
+reproduced verbatim from Supplementary Table 3 of the source paper.
 
 Programmatic access:
 
 - API: `GET /api/v1/methodology/abbreviations`
-- Streamlit UI: `app/pages/9a_Methodology.py`
+- Streamlit UI: `hkcc/app/pages/9a_Methodology.py`
 - DB table: `kcad_abbreviations`
 
 | Abbreviation | Expansion |

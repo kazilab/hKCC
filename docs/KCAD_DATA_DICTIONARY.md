@@ -7,12 +7,13 @@
 > decision-making.* Database (Oxford) **2025**, article `baaf026`.
 > DOI: [`10.1093/database/baaf026`](https://doi.org/10.1093/database/baaf026).
 
-reproduced verbatim from KCManuscript Supplementary Table 2.
+Definitions for every column of the KCAD annotation table,
+reproduced verbatim from Supplementary Table 2 of the source paper.
 
 Programmatic access:
 
-- API: `GET /api/routers/methodology/columns`
-- Streamlit UI: `app/pages/9a_Methodology.py`
+- API: `GET /api/v1/methodology/columns`
+- Streamlit UI: `hkcc/app/pages/9a_Methodology.py`
 - DB table: `kcad_column_definitions`
 
 See also: [`KCAD_ABBREVIATIONS.md`](KCAD_ABBREVIATIONS.md) for the glossary.
