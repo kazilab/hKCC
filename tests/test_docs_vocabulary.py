@@ -94,3 +94,85 @@ def test_readme_row_counts_match_the_database():
     assert evidence_c == counts[Evidence]
     assert assays_c == counts[Assay]
     assert refs_c == counts[Reference]
+
+
+README = DOC.parent.parent / "README.md"
+
+
+def _provenance_paragraph() -> str:
+    """Only the sentence crediting tables with the column, not the evidence one."""
+    text = README.read_text(encoding="utf-8")
+    start = text.index("Provenance is recorded in two different ways")
+    return text[start : text.index("**`evidence` has no", start)]
+
+
+def test_readme_never_claims_a_blanket_source_ref_id():
+    """The README promised one traceability path the schema does not provide.
+
+    It read "Every derived row in `hkcc.db` carries a `source_ref_id`". The
+    table holding the scores does not have the column at all, so the sentence
+    advertised row-level provenance for exactly the rows that lack it.
+    """
+    from sqlalchemy import inspect as sa_inspect
+
+    from hkcc.db.models import Evidence
+
+    columns = {c.key for c in sa_inspect(Evidence).columns}
+    assert "source_ref_id" not in columns, (
+        "evidence gained a source_ref_id — the README provenance section now understates it"
+    )
+    text = README.read_text(encoding="utf-8")
+    assert not re.search(r"Every derived row[^.]*source_ref_id", text), (
+        "the blanket source_ref_id claim is back"
+    )
+    assert "**`evidence` has no `source_ref_id` column.**" in text
+
+
+def test_readme_only_credits_tables_that_carry_source_ref_id():
+    """Each table named as carrying the column must actually carry it."""
+    from sqlalchemy import inspect as sa_inspect
+
+    from hkcc.db.session import SessionLocal
+
+    named = {t for t in re.findall(r"`([a-z_]+)`", _provenance_paragraph()) if t != "source_ref_id"}
+    assert named, "the provenance paragraph no longer names any table"
+
+    db = SessionLocal()
+    try:
+        inspector = sa_inspect(db.bind)
+        shipped = set(inspector.get_table_names())
+        for table in sorted(named):
+            assert table in shipped, f"README names a table the database does not have: {table}"
+            columns = {c["name"] for c in inspector.get_columns(table)}
+            assert "source_ref_id" in columns, f"README credits {table} with a source_ref_id it lacks"
+    finally:
+        db.close()
+
+
+def test_readme_evidence_provenance_counts_match_the_database():
+    """The citation counts stand in for the missing source_ref_id — they must hold."""
+    from sqlalchemy import func
+
+    from hkcc.db.models import Evidence, EvidenceCitation
+    from hkcc.db.session import SessionLocal
+
+    text = README.read_text(encoding="utf-8")
+    links_claim = re.search(r"more `evidence_citations` links — ([\d,]+) in total", text).group(1)
+    claimed_links = int(links_claim.replace(",", ""))
+    claimed_tenyear = int(re.search(r"backs the (\d+) `evidence` rows on the `10yr-iarc` track", text).group(1))
+    claimed_vol100 = int(re.search(r"remaining (\d+) `evidence` rows", text).group(1))
+
+    db = SessionLocal()
+    try:
+        assert db.scalar(select(func.count()).select_from(EvidenceCitation)) == claimed_links
+        by_track = dict(db.execute(select(Evidence.source_track, func.count()).group_by(Evidence.source_track)).all())
+        assert by_track["10yr-iarc"] == claimed_tenyear
+        assert by_track["vol100-kc"] == claimed_vol100
+        # "with every row carrying at least one" — the claim that replaces
+        # source_ref_id is worthless if any scored cell is uncited.
+        uncited = db.scalar(
+            select(func.count()).select_from(Evidence).where(~Evidence.citations.any())
+        )
+        assert uncited == 0, f"{uncited} evidence rows have no citation and no source_ref_id"
+    finally:
+        db.close()

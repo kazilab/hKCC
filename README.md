@@ -106,9 +106,19 @@ twice. See [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md).
 
 ## Data sources
 
-Every derived row in `hkcc.db` carries a `source_ref_id` pointing back to the
-canonical publication record it came from. Two peer-reviewed datasets underpin
-the database.
+Provenance is recorded in two different ways, and which one applies depends on the
+table. `agents`, `assays`, `assay_annotations`, `assay_kc_subgroups`,
+`assay_study_designs`, `candidate_domains`, `iarc_monograph_kc_calls`,
+`iarc_monograph_kc_strength` and the two KCAD dictionaries carry a `source_ref_id`
+pointing back to the canonical publication record (8 of 573 assays have none).
+
+**`evidence` has no `source_ref_id` column.** Each of its 844 rows names its
+provenance through `source_track`, a `curator_notes` derivation note, and one or
+more `evidence_citations` links — 1,607 in total, with every row carrying at least
+one. Provenance throughout is publication-level: the database records which paper a
+value came from, not the supplementary sheet or cell it was read from, so a value
+cannot be traced to its exact position in the source. Three peer-reviewed sources
+underpin the database.
 
 **KCAD — Key Characteristics Assay Database.** Source of the assay library, the
 study-level annotations, the abbreviation glossary and the column dictionary
@@ -120,15 +130,26 @@ study-level annotations, the abbreviation glossary and the column dictionary
 > DOI: [`10.1093/database/baaf026`](https://doi.org/10.1093/database/baaf026).
 
 **IARC 10-year retrospective.** Source of `iarc_monograph_kc_calls` (per-volume,
-per-model-system Yes/No/Equivocal/Protective calls), `iarc_monograph_kc_strength`
-(per-(agent, KC) standardized labels) and the derived `evidence` scores
-(`source_ref_id = rusyn2024-tenyears`).
+per-model-system Yes/No/Equivocal/Protective calls) and `iarc_monograph_kc_strength`
+(per-(agent, KC) standardized labels), both `source_ref_id = rusyn2024-tenyears`. It
+also backs the 502 `evidence` rows on the `10yr-iarc` track, which cite it through
+`evidence_citations` rather than a `source_ref_id`.
 
 > **Rusyn I, Wright FA, Smith MT, et al.** *Ten years of using key
 > characteristics of human carcinogens to organize and evaluate mechanistic
 > evidence in IARC Monographs Volumes 112–130.* Toxicological Sciences
 > 198(1):141–154 (2024).
 > DOI: [`10.1093/toxsci/kfad134`](https://doi.org/10.1093/toxsci/kfad134).
+
+**IARC Volume 100 re-review.** Backs the remaining 342 `evidence` rows — the whole
+`vol100-kc` track — and 84 `agents`, again cited through `evidence_citations`. Its
+scores count shaded information-source types out of four, which is a different
+quantity from the other track; see item 1 of [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+> **Krewski D, et al.** *Chapter 22: Analysis of key characteristics of human
+> carcinogens.* In: Tumour Site Concordance and Mechanisms of Carcinogenesis,
+> IARC Scientific Publication **165** (2019).
+> [`NBK570329`](https://www.ncbi.nlm.nih.gov/books/NBK570329/).
 
 See [`docs/KCC_EVIDENCE_RULES.md`](docs/KCC_EVIDENCE_RULES.md) for the algorithm
 that maps the published cell labels to the 0–4 `evidence.score` scale, and
