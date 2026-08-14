@@ -187,6 +187,42 @@ the label-offset note on every page that shows a score.
 
 ---
 
+## 9. The database cannot be rebuilt from its published sources
+
+**What is wrong.** `hkcc.db` ships as a build artefact with no reproducible path
+back to the papers it derives from. The one-off importers that produced it from
+the supplementary files are deliberately excluded from the distribution
+(`docs/SCOPE.md`), so nothing in this repository can regenerate the database, and
+no test compares it against the published source files.
+
+What the tests do check is real but narrower than it looks: they recompute every
+`evidence.score` from `iarc_monograph_kc_calls` and `iarc_monograph_kc_strength`
+(see `docs/KCC_EVIDENCE_RULES.md`). Those tables are already the *output* of the
+import. A transcription error made while reading Rusyn et al.'s File 12 into
+`iarc_monograph_kc_calls` would be faithfully reproduced by the scoring test and
+reported as a pass.
+
+Provenance is also publication-level only. A row records which paper it came
+from, never which supplementary sheet, row or cell — so a disputed value cannot
+be checked against its source position without redoing the extraction by hand.
+
+**Planned fix (0.1.0).** Restore the importers as deterministic, versioned
+pipelines; pin each source file by URL and SHA-256; record sheet and cell
+identifiers alongside each extracted value; and add an end-to-end test that
+rebuilds the database from the pinned sources and reconciles it row-for-row
+against the shipped copy.
+
+**Why not now.** The importers were written against manually cleaned
+spreadsheets and are not currently deterministic. Making them so is a rewrite,
+not a restoration, and the pinned-source layer has to land with it or the
+reconciliation test has nothing trustworthy to compare against.
+
+**Interim disclosure.** The README states that provenance is publication-level
+and that values cannot be traced to a source sheet or cell. `docs/SCOPE.md`
+records that the importers are not distributed.
+
+---
+
 ## Fixed in 0.0.11
 
 * Score-zero documentation claimed 144 cells were supplementary-positive; only 32
