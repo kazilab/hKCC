@@ -2,14 +2,23 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import streamlit as st
 
-from hkcc.api.observability import init_sentry
-from hkcc.app.components.sidebar import render_sidebar
-from hkcc.app.data_client import data_source_label, get_data_source
-from hkcc.app.theme import apply_theme, init_tweak_defaults
+# `streamlit run` puts only this file's own directory on sys.path, so the parent
+# ``hkcc`` package is importable only where it was pip-installed (a checkout with
+# `pip install -e .`). Streamlit Community Cloud installs requirements.txt but not
+# the project itself, so the repo root has to go on the path before any hkcc import.
+_REPO_ROOT = str(Path(__file__).resolve().parents[1])
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+from hkcc.api.observability import init_sentry  # noqa: E402
+from hkcc.app.components.sidebar import render_sidebar  # noqa: E402
+from hkcc.app.data_client import data_source_label, get_data_source  # noqa: E402
+from hkcc.app.theme import apply_theme, init_tweak_defaults  # noqa: E402
 
 init_sentry("streamlit")
 init_tweak_defaults()
