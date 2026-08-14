@@ -80,8 +80,8 @@ def _tweak_extra_css() -> str:
         parts.append(
             """
 [data-testid="stMain"] .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-[data-testid="stVerticalBlockBorderWrapper"] { padding: 0.5rem !important; }
-div[data-testid="stButton"] > button { padding: 0.25rem 0.5rem !important; }
+[data-testid="stVerticalBlockBorderWrapper"], [class*="st-key-hkcc-card"] { padding: 0.5rem !important; }
+div[data-testid="stButton"] button { padding: 0.25rem 0.5rem !important; }
 """
         )
     if not serif:
@@ -142,7 +142,13 @@ section[data-testid="stSidebar"] .stCaption,
 [data-testid="stMain"] .stCaption, .mono, .lede {{ color: var(--muted) !important; }}
 .lede {{ color: var(--ink-2) !important; }}
 
-[data-testid="stVerticalBlockBorderWrapper"] {{
+/* Cards. A bordered container has no test id of its own — the border is a
+   styled-component prop — so cards are addressed through the `st-key-` class
+   Streamlit derives from their key; see components/card.py. The wrapper test id
+   is kept for Streamlit <= 1.4x (the requirements floor), where it still
+   exists and this one does the work. */
+[data-testid="stVerticalBlockBorderWrapper"],
+[class*="st-key-hkcc-card"] {{
   background-color: var(--paper-2) !important;
   border-color: var(--rule) !important;
 }}
@@ -163,17 +169,21 @@ div[data-testid="stExpander"] summary {{ color: var(--ink) !important; }}
 [data-testid="stDataFrame"] {{ background-color: var(--paper-2) !important; }}
 [data-testid="stDataFrame"] div {{ color: var(--ink) !important; }}
 
-div[data-testid="stButton"] > button {{
+/* Descendant, not direct child: a button carrying `help=` is wrapped in a
+   tooltip host, which breaks `> button`. The primary rule lists both the
+   historical and the current base-button test ids. */
+div[data-testid="stButton"] button {{
   background-color: var(--paper-3) !important;
   color: var(--ink) !important;
   border-color: var(--rule) !important;
 }}
-div[data-testid="stButton"] > button:hover {{
+div[data-testid="stButton"] button:hover {{
   border-color: var(--accent) !important;
   color: var(--accent) !important;
 }}
-div[data-testid="stButton"] > button[kind="primary"],
-div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {{
+div[data-testid="stButton"] button[kind="primary"],
+div[data-testid="stButton"] button[data-testid="baseButton-primary"],
+div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {{
   background-color: var(--accent) !important;
   color: #fff !important;
   border-color: var(--accent) !important;

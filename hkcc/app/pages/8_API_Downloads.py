@@ -7,6 +7,7 @@ import httpx
 import streamlit as st
 import streamlit.components.v1 as components
 
+from hkcc.app.components.card import card
 from hkcc.app.data.api_samples import ACCESS_NOTES, ENDPOINTS, quickstart
 from hkcc.app.data_client import api_base_url, configured_api_base
 from hkcc.app.page_shell import init_page
@@ -82,7 +83,7 @@ with tab_api:
             kb = fpath.stat().st_size / 1024
             size = f"{kb:.0f} KB" if kb < 1024 else f"{kb / 1024:.1f} MB"
         with col:
-            with st.container(border=True):
+            with card(f"api-download-{fmt.lower()}"):
                 st.markdown(
                     f'<p class="brand-serif" style="font-size:1.75rem;margin:0">{fmt}</p>', unsafe_allow_html=True
                 )
@@ -137,9 +138,9 @@ with tab_api:
     st.markdown('<p class="eyebrow">Access</p>', unsafe_allow_html=True)
     st.markdown("#### How access works")
     note_cols = st.columns(len(ACCESS_NOTES))
-    for col, note in zip(note_cols, ACCESS_NOTES):
+    for i, (col, note) in enumerate(zip(note_cols, ACCESS_NOTES)):
         with col:
-            with st.container(border=True):
+            with card(f"api-access-{i}"):
                 st.markdown(f"**{note['title']}**")
                 st.write(note["body"])
 

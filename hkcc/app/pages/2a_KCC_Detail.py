@@ -3,6 +3,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
+from hkcc.app.components.card import card
 from hkcc.app.components.glyphs import render_glyph
 from hkcc.app.data_client import (
     agents_for_kcc,
@@ -53,7 +54,7 @@ with head_l:
     st.markdown(f'<h1 class="h-display" style="font-size:2.5rem">{k["title"]}</h1>', unsafe_allow_html=True)
     st.markdown(f'<p class="lede">{k["description"]}</p>', unsafe_allow_html=True)
 with head_r:
-    with st.container(border=True):
+    with card("kcc-symbol"):
         render_glyph(k["icon"], size=64, color=color)
         st.caption("SYMBOL")
 
@@ -96,8 +97,8 @@ with mech_r:
 st.markdown("---")
 st.markdown(f"#### Linked carcinogens with evidence ≥ 2 for {k['short']} ({len(linked)})")
 if linked:
-    for row in linked:
-        with st.container(border=True):
+    for i, row in enumerate(linked):
+        with card(f"kcc-linked-{i}"):
             c1, c2, c3 = st.columns([3, 1, 1])
             with c1:
                 st.markdown(f"**{row['name']}**")
@@ -116,8 +117,8 @@ else:
 st.markdown("---")
 st.markdown(f"#### Key assays ({len(rel_assays)})")
 if rel_assays:
-    for a in rel_assays:
-        with st.container(border=True):
+    for i, a in enumerate(rel_assays):
+        with card(f"kcc-assay-{i}"):
             st.markdown(f"**{a['name']}**")
             st.caption(f"{a['type']} · {a['target']} · {a['throughput']}")
             if a.get("oecd_tg") and a["oecd_tg"] != "—":

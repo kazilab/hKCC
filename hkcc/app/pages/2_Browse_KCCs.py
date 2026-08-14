@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from hkcc.app.components.card import card
 from hkcc.app.components.glyphs import render_glyph
 from hkcc.app.data_client import kcc_stats, list_candidate_domains, list_kccs
 from hkcc.app.page_shell import global_search_query, init_page
@@ -56,7 +57,7 @@ if view == "Grid":
         s = stats.get(k["id"], {"carc_count": 0, "assay_count": 0})
         color = THEME["accent"]
         with cols[i % 2]:
-            with st.container(border=True):
+            with card(f"kccs-grid-{i}"):
                 g1, g2 = st.columns([1, 8])
                 with g1:
                     render_glyph(k["icon"], size=26, color=color)
@@ -121,8 +122,8 @@ st.warning(
 
 kcc_short = {k["id"]: k["short"] for k in kccs}
 _levels = {"functional": "functional", "descriptive": "descriptive (does not meet a functional bar)"}
-for d in domains:
-    with st.container(border=True):
+for di, d in enumerate(domains):
+    with card(f"kccs-domain-{di}"):
         st.markdown(f"**{d['code']} · {d['title']}**")
         st.write(d["definition"])
         prim = ", ".join(kcc_short.get(i, i) for i in d["primary_kcc_ids"]) or "—"

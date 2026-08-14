@@ -3,6 +3,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
+from hkcc.app.components.card import card
 from hkcc.app.components.glyphs import render_glyph
 from hkcc.app.data_client import (
     agents_with_evidence,
@@ -96,7 +97,7 @@ cols = st.columns(4)
 for i, k in enumerate(preview_kccs):
     s = stats.get(k["id"], {"carc_count": 0, "assay_count": 0})
     with cols[i % 4]:
-        with st.container(border=True):
+        with card(f"overview-kcc-{i}"):
             g_left, g_right = st.columns([1, 4])
             with g_left:
                 # No branch on `is_extended`: the four extended characteristics
@@ -180,14 +181,14 @@ st.caption(
     "the source is shown on each card."
 )
 
-for a in featured:
+for i, a in enumerate(featured):
     fid = a["id"]
     ev = _scores_of(a)
     scores = [ev.get(k["id"]) for k in kccs]
     dirs = a.get("directions") or {}
     directions = [dirs.get(k["id"]) for k in kccs]
     cov = kcc_coverage(ev)
-    with st.container(border=True):
+    with card(f"overview-featured-{i}"):
         c1, c2, c3 = st.columns([3, 1, 2])
         with c1:
             _tracks = {"10yr-iarc": "10-yr retrospective", "vol100-kc": "Volume 100"}
@@ -229,8 +230,8 @@ if search_q:
 refs = refs_all[:5]
 st.markdown('<p class="eyebrow">Recent</p>', unsafe_allow_html=True)
 st.markdown("#### Methodology & literature")
-for ref in refs:
-    with st.container(border=True):
+for i, ref in enumerate(refs):
+    with card(f"overview-ref-{i}"):
         tag = ", ".join(ref.get("tags", [])) or "Reference"
         st.markdown(
             f'<span style="color:{THEME["accent"]};font-family:JetBrains Mono,monospace;'
@@ -294,7 +295,7 @@ with left:
 with right:
     components.html(ev_legend_html(), height=48)
     if example:
-        with st.container(border=True):
+        with card("overview-example"):
             st.caption(f"EXAMPLE · {example['name'].upper()}")
             components.html(fingerprint_html(example_scores, shorts, directions=example_directions), height=28)
             st.caption(

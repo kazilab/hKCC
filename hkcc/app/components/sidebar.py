@@ -69,20 +69,21 @@ def render_sidebar() -> None:
     )
     st.markdown("---")
 
-    for sec_label, label, path, count_key in _NAV:
+    for page_key, label, path, count_key in _NAV:
         if path is None:
+            # Section divider: its page key is None and the heading is the label.
             st.markdown(
                 f'<p class="mono" style="margin:1rem 0 0.35rem;font-size:0.62rem">'
-                f"{sec_label}</p>",
+                f"{label}</p>",
                 unsafe_allow_html=True,
             )
             continue
-        is_active = active == sec_label
+        is_active = active == page_key
         count = counts.get(count_key) if count_key else None
         btn_label = label if count is None else f"{label}  ({count})"
         if st.button(
             btn_label,
-            key=f"nav_{sec_label}",
+            key=f"nav_{page_key}",
             use_container_width=True,
             type="primary" if is_active else "secondary",
         ):

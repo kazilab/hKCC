@@ -4,6 +4,7 @@ import html
 
 import streamlit as st
 
+from hkcc.app.components.card import card
 from hkcc.app.components.radar import render_radar
 from hkcc.app.components.ref_card import render_ref_cards
 from hkcc.app.data_client import (
@@ -339,8 +340,8 @@ with tab[_idx["Detailed evidence"]]:
 
 if _sites:
     with tab[_idx["Tumour sites"]]:
-        for site in _sites:
-            with st.container(border=True):
+        for i, site in enumerate(_sites):
+            with card(f"agent-site-{i}"):
                 st.markdown(f"**{site}**")
                 st.caption("Sufficient evidence in humans (IARC monograph)")
 

@@ -20,6 +20,7 @@ import html
 import pandas as pd
 import streamlit as st
 
+from hkcc.app.components.card import card
 from hkcc.app.data_client import (
     get_data_source,
     get_monograph_agent_matrix,
@@ -66,7 +67,7 @@ if not volumes:
 
 monograph_agents = list_monograph_agents()
 
-with st.container(border=True):
+with card("iarc-matrix"):
     cols = st.columns(3)
     cols[0].metric("Volumes covered", len({v["volume"] for v in volumes}))
     # Counted from the call table. This read `len({v["volume"] for v in volumes})`

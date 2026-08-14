@@ -5,6 +5,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from hkcc.app.components.agent_table import render_agent_table
+from hkcc.app.components.card import card
 from hkcc.app.data_client import agents_with_evidence
 from hkcc.app.page_shell import global_search_query, init_page
 from hkcc.app.utils.evidence import count_at_least, ev_legend_html, kcc_coverage
@@ -30,7 +31,7 @@ st.caption("Searchable list with mechanistic evidence across the ten KCCs. Click
 
 q_default = global_search_query()
 
-with st.container(border=True):
+with card("carcinogens-table"):
     c1, c2, c3, c4 = st.columns([2, 2, 1, 2])
     with c1:
         q = st.text_input("Search", value=q_default, placeholder="Name, CAS, type…", label_visibility="collapsed")

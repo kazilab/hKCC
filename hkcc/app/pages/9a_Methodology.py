@@ -13,6 +13,7 @@ import html
 
 import streamlit as st
 
+from hkcc.app.components.card import card
 from hkcc.app.data_client import (
     get_evidence_rules,
     get_source_paper,
@@ -200,7 +201,7 @@ with tab_kcad:
     )
 
     # ── Source paper card ────────────────────────────────────────────────────────
-    with st.container(border=True):
+    with card("methodology-source"):
         st.markdown("### Source publication")
         if paper:
             title = paper.get("title", "—")

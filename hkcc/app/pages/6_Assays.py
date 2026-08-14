@@ -4,6 +4,7 @@ import html
 
 import streamlit as st
 
+from hkcc.app.components.card import card
 from hkcc.app.data_client import (
     annotations_for_assay,
     get_source_paper,
@@ -156,7 +157,7 @@ else:
 cols = st.columns(2)
 for i, a in enumerate(page_rows):
     with cols[i % 2]:
-        with st.container(border=True):
+        with card(f"assays-grid-{i}"):
             chip = ""
             if a.get("source"):
                 chip = (
