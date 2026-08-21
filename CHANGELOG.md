@@ -42,6 +42,17 @@ version lives in `pyproject.toml` and nothing else hardcodes it.
 - Tests: every domain must have at least one `home`, and `contrastive` is pinned
   to the single EMD4–KCC9 link so it cannot spread without a manuscript change.
 
+### Fixed
+- **`Browse KCCs` crashed with `KeyError: 'home_kcc_ids'`.** `list_candidate_domains`
+  returns the API's response verbatim when `API_BASE_URL` is set, so a UI carrying
+  the four relations against an API still serving `primary`/`secondary` took the
+  page down on load. Both data sources are now normalised through
+  `_normalise_domain`, and the database branch reads through `_relation_lists`,
+  which accepts a dataset released before the migration. Version skew between the
+  UI, the API and the pinned dataset now degrades into a coarser reading instead
+  of an exception. `secondary` maps to `downstream` rather than being promoted
+  into a direction the old schema could not record.
+
 ### Note
 - `CD5` (gap-junctional communication) is outside the manuscript's four domains and
   was **not** audited. Its links were carried over structurally (`primary`→`home`,

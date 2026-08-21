@@ -210,6 +210,65 @@ def list_kccs() -> list[dict]:
         db.close()
 
 
+#: The four parent-KCC relations, and the payload field each is served under.
+DOMAIN_REL_FIELDS = {
+    "home": "home_kcc_ids",
+    "downstream": "downstream_kcc_ids",
+    "upstream": "upstream_kcc_ids",
+    "contrastive": "contrastive_kcc_ids",
+}
+
+
+#: Pre-migration relation values, and what they mean in the four-value scheme.
+#: `secondary` was untyped, so it becomes `downstream` rather than being
+#: promoted into a direction the old schema could not record.
+_LEGACY_RELATION = {"primary": "home", "secondary": "downstream"}
+
+
+def _relation_lists(kcc_links) -> dict[str, list[str]]:
+    """Group parent-KCC links into the four relation fields.
+
+    Tolerates a database still carrying `primary`/`secondary`: the package can
+    be pointed at any released dataset, and those predate the migration.
+    """
+    out: dict[str, list[str]] = {f: [] for f in DOMAIN_REL_FIELDS.values()}
+    for lk in kcc_links:
+        rel = _LEGACY_RELATION.get(lk.relation, lk.relation)
+        field = DOMAIN_REL_FIELDS.get(rel)
+        if field:
+            out[field].append(lk.kcc_id)
+    return {f: sorted(v) for f, v in out.items()}
+
+
+def _normalise_domain(d: dict) -> dict:
+    """Guarantee every relation field, whatever the data source served.
+
+    The UI and the API deploy separately, so the API can legitimately be a
+    version behind and answer with only the old ``primary``/``secondary`` pair.
+    Filling the gap here means version skew degrades into a coarser reading
+    instead of reaching a page as a KeyError. A pre-relations payload maps the
+    only way it can: ``primary`` was the home, and everything else was an
+    untyped link, which is precisely the direction the older schema could not
+    record - so it lands in ``downstream`` and is not invented as anything more
+    specific.
+    """
+    d = dict(d)
+    if any(f in d for f in DOMAIN_REL_FIELDS.values()):
+        for f in DOMAIN_REL_FIELDS.values():
+            d[f] = sorted(d.get(f) or [])
+    else:
+        d["home_kcc_ids"] = sorted(d.get("primary_kcc_ids") or [])
+        d["downstream_kcc_ids"] = sorted(d.get("secondary_kcc_ids") or [])
+        d["upstream_kcc_ids"] = []
+        d["contrastive_kcc_ids"] = []
+    d.setdefault("primary_kcc_ids", list(d["home_kcc_ids"]))
+    d.setdefault(
+        "secondary_kcc_ids",
+        sorted(d["downstream_kcc_ids"] + d["upstream_kcc_ids"] + d["contrastive_kcc_ids"]),
+    )
+    return d
+
+
 @_cached()
 def list_candidate_domains() -> list[dict]:
     """Layer 2: cross-cutting domains that qualify a KCC observation.
@@ -220,7 +279,7 @@ def list_candidate_domains() -> list[dict]:
     src = get_data_source()
     if src is DataSource.API:
         try:
-            return _get("/domains")
+            return [_normalise_domain(d) for d in _get("/domains")]
         except httpx.HTTPError:
             return []
     if src is DataSource.NO_DATA:
@@ -237,7 +296,7 @@ def list_candidate_domains() -> list[dict]:
             .order_by(CandidateDomain.n)
         ).all()
         return [
-            {
+            _normalise_domain({
                 "id": d.id,
                 "code": d.code,
                 "n": d.n,
@@ -248,15 +307,10 @@ def list_candidate_domains() -> list[dict]:
                 "key_exclusions": d.key_exclusions,
                 "status": d.status,
                 "source_ref_id": d.source_ref_id,
-                "home_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "home"),
-                "downstream_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "downstream"),
-                "upstream_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "upstream"),
-                "contrastive_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "contrastive"),
-                # Deprecated two-value view, kept so existing callers keep working.
-                # "primary" collapses to `home`; everything else is "secondary",
-                # which is exactly what the four relations exist to separate.
-                "primary_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "home"),
-                "secondary_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation != "home"),
+                # Read through _LEGACY_RELATION so a dataset released before the
+                # relations migration still renders, rather than reporting every
+                # domain as having no links at all.
+                **_relation_lists(d.kcc_links),
                 "assay_ids": sorted(lk.assay_id for lk in d.assay_links),
                 # Structured form: a domain"s minimum_evidence can demand a
                 # functional readout, so the level has to survive the API.
@@ -268,7 +322,7 @@ def list_candidate_domains() -> list[dict]:
                     key=lambda link: link["assay_id"],
                 ),
                 "reference_ids": sorted(lk.reference_id for lk in d.reference_links),
-            }
+            })
             for d in rows
         ]
     finally:
