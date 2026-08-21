@@ -53,6 +53,20 @@ version lives in `pyproject.toml` and nothing else hardcodes it.
   of an exception. `secondary` maps to `downstream` rather than being promoted
   into a direction the old schema could not record.
 
+- **Migrated off `st.components.v1.html`**, removed after 2026-06-01. All 13 call
+  sites now go through `hkcc.app.components.embed.html_block`. The deprecation
+  notice names `st.iframe`, but that takes a URL, not markup - the replacement
+  for an HTML string is `st.html`, which inlines into the page instead of
+  sandboxing it in an iframe. Three consequences are handled in the one helper:
+  a bare `height` is dropped (inline content sizes itself, and enforcing a height
+  would clip markup that no longer has an iframe to scroll in); `scrolling=True`
+  becomes an explicit `max-height` + `overflow:auto` wrapper so a long evidence
+  matrix scrolls within itself rather than extending the page; and JavaScript is
+  off by default, with the API page's clipboard button opting in explicitly now
+  that the iframe sandbox is gone. Safe here because no builder emits a `<style>`
+  block, so nothing leaks into the surrounding page. The `unsafe_allow_javascript`
+  argument postdates the `streamlit>=1.40` floor and is feature-detected.
+
 ### Note
 - `CD5` (gap-junctional communication) is outside the manuscript's four domains and
   was **not** audited. Its links were carried over structurally (`primary`→`home`,

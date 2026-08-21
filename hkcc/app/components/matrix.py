@@ -1,11 +1,10 @@
-"""Evidence matrix heatmap via st.components.html."""
+"""Evidence matrix heatmap, rendered inline by :func:`~hkcc.app.components.embed.html_block`."""
 
 from __future__ import annotations
 
 from html import escape
 
-import streamlit.components.v1 as components
-
+from hkcc.app.components.embed import html_block
 from hkcc.app.utils.evidence import DIRECTION_MARKS, count_at_least, kcc_coverage
 
 
@@ -185,4 +184,4 @@ def matrix_heatmap_html(
 
 def render_matrix(kccs: list[dict], rows: list[dict], matrix_style: str = "heatmap") -> None:
     h = min(800, 120 + len(rows) * 36)
-    components.html(matrix_heatmap_html(kccs, rows, matrix_style=matrix_style), height=h, scrolling=True)
+    html_block(matrix_heatmap_html(kccs, rows, matrix_style=matrix_style), height=h, scrolling=True)

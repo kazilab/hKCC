@@ -5,9 +5,9 @@ import html
 
 import httpx
 import streamlit as st
-import streamlit.components.v1 as components
 
 from hkcc.app.components.card import card
+from hkcc.app.components.embed import html_block
 from hkcc.app.data.api_samples import ACCESS_NOTES, ENDPOINTS, quickstart
 from hkcc.app.data_client import api_base_url, configured_api_base
 from hkcc.app.page_shell import init_page
@@ -40,7 +40,7 @@ def _copyable_code(
     code_b64 = base64.b64encode(code.encode("utf-8")).decode("ascii")
     escaped = html.escape(code)
     h = height or min(520, 96 + len(code.splitlines()) * 22)
-    components.html(
+    html_block(
         f"""
         <div style="border:1px solid {rule};border-radius:4px;overflow:hidden;background:{bg};font-family:Public Sans,sans-serif">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:{head_bg};border-bottom:1px solid {rule}">
@@ -53,6 +53,7 @@ def _copyable_code(
         """,
         height=h,
         scrolling=True,
+        allow_javascript=True,
     )
 
 

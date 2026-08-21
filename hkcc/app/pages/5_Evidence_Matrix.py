@@ -2,8 +2,8 @@
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
+from hkcc.app.components.embed import html_block
 from hkcc.app.components.matrix import render_matrix, to_matrix_row
 from hkcc.app.data_client import get_matrix, list_kccs
 from hkcc.app.page_shell import init_page
@@ -80,7 +80,7 @@ if sort_by in ("coverage", "substantial") and len({t for r in rows for t in r.ge
 matrix_rows = [to_matrix_row(r) for r in rows]
 
 render_matrix(kccs, matrix_rows, matrix_style=matrix_style)
-components.html(ev_legend_html(), height=40)
+html_block(ev_legend_html())
 # Kept on every page that shows a score, not only Methodology: the offset
 # is the single easiest thing to misread when comparing against the paper.
 st.caption(LABEL_OFFSET_SHORT)

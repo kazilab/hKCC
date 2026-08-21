@@ -5,8 +5,7 @@ from __future__ import annotations
 from html import escape
 from urllib.parse import quote
 
-import streamlit.components.v1 as components
-
+from hkcc.app.components.embed import html_block
 from hkcc.app.theme import THEME
 from hkcc.app.utils.evidence import fingerprint_html, group_chip_html, kcc_coverage
 
@@ -105,4 +104,4 @@ def agent_table_html(
 
 def render_agent_table(rows: list[dict], *, kcc_shorts: list[str] | None = None) -> None:
     h = min(600, 48 + len(rows) * 44)
-    components.html(agent_table_html(rows, kcc_shorts=kcc_shorts), height=h, scrolling=True)
+    html_block(agent_table_html(rows, kcc_shorts=kcc_shorts), height=h, scrolling=True)

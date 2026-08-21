@@ -1,10 +1,9 @@
-"""KCC glyph HTML for st.components.v1.html."""
+"""KCC glyph HTML, rendered inline by :func:`hkcc.app.components.embed.html_block`."""
 
 from __future__ import annotations
 
-import streamlit.components.v1 as components
-
 from hkcc.app import theme
+from hkcc.app.components.embed import html_block
 
 GLYPH_PATHS = {
     "circle": '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/>',
@@ -35,4 +34,4 @@ def kcc_glyph_html(kind: str, *, size: int = 24, color: str | None = None) -> st
 
 
 def render_glyph(kind: str, size: int = 24, color: str | None = None) -> None:
-    components.html(kcc_glyph_html(kind, size=size, color=color), height=size + 8)
+    html_block(kcc_glyph_html(kind, size=size, color=color))

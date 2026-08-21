@@ -27,8 +27,7 @@ from __future__ import annotations
 import math
 from html import escape
 
-import streamlit.components.v1 as components
-
+from hkcc.app.components.embed import html_block
 from hkcc.app.utils.evidence import DIRECTION_MARKS
 
 # Score 0 ("assessed, primary systems negative") is a real finding and must stay
@@ -164,8 +163,7 @@ def render_radar(
     from hkcc.app.utils.evidence import ev_legend_html
 
     body = radar_plot_html(kccs, evidence, directions=directions)
-    components.html(
+    html_block(
         '<div style="font-family:Public Sans,sans-serif;background:transparent">'
-        f'{body}<div style="margin-top:10px">{ev_legend_html()}</div></div>',
-        height=460,
+        f'{body}<div style="margin-top:10px">{ev_legend_html()}</div></div>'
     )

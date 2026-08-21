@@ -1,9 +1,9 @@
 """Overview."""
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from hkcc.app.components.card import card
+from hkcc.app.components.embed import html_block
 from hkcc.app.components.glyphs import render_glyph
 from hkcc.app.data_client import (
     agents_with_evidence,
@@ -201,7 +201,7 @@ for i, a in enumerate(featured):
             st.caption("Coverage")
             st.markdown(f"**{cov}/{len(kccs)}**")
         with c3:
-            components.html(fingerprint_html(scores, shorts, directions=directions), height=24)
+            html_block(fingerprint_html(scores, shorts, directions=directions))
         if st.button(f"View {a['name']} →", key=f"feat_{fid}"):
             st.session_state["agent_id"] = fid
             st.query_params["agent_id"] = fid
@@ -293,11 +293,11 @@ with left:
         "than across. See the methodology page for both derivations in full."
     )
 with right:
-    components.html(ev_legend_html(), height=48)
+    html_block(ev_legend_html())
     if example:
         with card("overview-example"):
             st.caption(f"EXAMPLE · {example['name'].upper()}")
-            components.html(fingerprint_html(example_scores, shorts, directions=example_directions), height=28)
+            html_block(fingerprint_html(example_scores, shorts, directions=example_directions))
             st.caption(
                 f"{example_assessed} of {len(kccs)} characteristics assessed · "
                 f"{example_substantial} substantial or better"

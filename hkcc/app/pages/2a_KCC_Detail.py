@@ -1,9 +1,9 @@
 """KCC detail."""
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from hkcc.app.components.card import card
+from hkcc.app.components.embed import html_block
 from hkcc.app.components.glyphs import render_glyph
 from hkcc.app.data_client import (
     agents_for_kcc,
@@ -102,10 +102,10 @@ if linked:
             c1, c2, c3 = st.columns([3, 1, 1])
             with c1:
                 st.markdown(f"**{row['name']}**")
-                components.html(group_chip_html(row.get("iarc_group")), height=28)
+                html_block(group_chip_html(row.get("iarc_group")))
                 st.caption(row.get("agent_type", ""))
             with c2:
-                components.html(ev_bar_html(row["kcc_score"]), height=28)
+                html_block(ev_bar_html(row["kcc_score"]))
             with c3:
                 if st.button("Profile →", key=f"kcc_agent_{row['id']}"):
                     st.session_state["agent_id"] = row["id"]

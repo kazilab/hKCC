@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from html import escape
 
-import streamlit.components.v1 as components
-
+from hkcc.app.components.embed import html_block
 from hkcc.app.theme import THEME
 
 
@@ -75,4 +74,4 @@ def render_ref_cards(refs: list[dict], *, height: int | None = None) -> None:
         return
     html = f'<div style="background:transparent">{"".join(ref_card_html(r) for r in refs)}</div>'
     h = height or min(800, 80 + len(refs) * 110)
-    components.html(html, height=h, scrolling=True)
+    html_block(html, height=h, scrolling=True)

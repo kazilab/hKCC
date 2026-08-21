@@ -2,10 +2,10 @@
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from hkcc.app.components.agent_table import render_agent_table
 from hkcc.app.components.card import card
+from hkcc.app.components.embed import html_block
 from hkcc.app.data_client import agents_with_evidence
 from hkcc.app.page_shell import global_search_query, init_page
 from hkcc.app.utils.evidence import count_at_least, ev_legend_html, kcc_coverage
@@ -118,7 +118,7 @@ for a in filtered:
     )
 
 render_agent_table(table_rows, kcc_shorts=shorts)
-components.html(ev_legend_html(), height=40)
+html_block(ev_legend_html())
 
 exp1, exp2 = st.columns(2)
 # A score without its direction and source is not interpretable, and this export
