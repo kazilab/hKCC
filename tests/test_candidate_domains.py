@@ -20,6 +20,7 @@ import pytest
 from sqlalchemy import func, select
 
 from hkcc.db.models import (
+    DOMAIN_KCC_RELATIONS,
     KCC,
     CandidateDomain,
     CandidateDomainAssay,
@@ -86,10 +87,45 @@ def test_parent_links_resolve_and_use_a_known_relation(db):
     for link in db.scalars(select(CandidateDomainKCC)):
         if link.kcc_id not in kcc_ids:
             bad_kcc.append((link.domain_id, link.kcc_id))
-        if link.relation not in {"primary", "secondary"}:
+        if link.relation not in set(DOMAIN_KCC_RELATIONS):
             bad_rel.append((link.domain_id, link.relation))
     assert not bad_kcc, f"parent links to unknown KCCs: {bad_kcc}"
     assert not bad_rel, f"unknown relation values: {bad_rel}"
+
+
+def test_every_domain_has_exactly_one_kind_of_home(db):
+    """A domain with no ``home`` has nowhere to file its evidence.
+
+    ``downstream``/``upstream``/``contrastive`` all describe how a domain touches
+    a KCC, not where its observations belong. Only ``home`` does that, so a
+    domain carrying none of them would again be a characteristic by stealth -
+    the same failure ``test_every_domain_parents_onto_at_least_one_kcc`` guards,
+    one level more specific.
+    """
+    homeless = []
+    for d in db.scalars(select(CandidateDomain)):
+        n = db.scalar(
+            select(func.count())
+            .select_from(CandidateDomainKCC)
+            .where(CandidateDomainKCC.domain_id == d.id, CandidateDomainKCC.relation == "home")
+        )
+        if not n:
+            homeless.append(d.code)
+    assert not homeless, f"candidate domains with no home KCC: {homeless}"
+
+
+def test_contrastive_links_are_rare_and_deliberate(db):
+    """``contrastive`` inverts the sign of a link, so it must not spread quietly.
+
+    It exists for EMD4-KCC9: the domain measures induction of senescence and the
+    characteristic is defined as bypass of it. Anything else claiming opposing
+    polarity is a mapping decision that belongs in the manuscript first.
+    """
+    links = [
+        (lk.domain_id, lk.kcc_id)
+        for lk in db.scalars(select(CandidateDomainKCC).where(CandidateDomainKCC.relation == "contrastive"))
+    ]
+    assert links == [("emd4", "kcc-09")], f"unexpected contrastive links: {links}"
 
 
 def test_every_domain_declares_its_evidence_bar(db):
