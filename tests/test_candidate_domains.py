@@ -28,6 +28,11 @@ from hkcc.db.models import (
     CandidateDomainReference,
     Evidence,
 )
+from hkcc.app.data_client import (
+    DOMAIN_REL_FIELDS,
+    _normalise_domain,
+    _relation_lists,
+)
 from hkcc.db.session import SessionLocal
 
 ESTABLISHED_KCCS = 10
@@ -126,6 +131,59 @@ def test_contrastive_links_are_rare_and_deliberate(db):
         for lk in db.scalars(select(CandidateDomainKCC).where(CandidateDomainKCC.relation == "contrastive"))
     ]
     assert links == [("emd4", "kcc-09")], f"unexpected contrastive links: {links}"
+
+
+def test_domain_payload_survives_a_version_skewed_api():
+    """The UI and the API deploy separately, so the API can be a version behind.
+
+    Regression: `2_Browse_KCCs` read `d["home_kcc_ids"]` directly and a live API
+    still serving only primary/secondary raised KeyError on page load. The
+    payload is normalised centrally now, so an older source degrades into a
+    coarser reading instead of taking the page down.
+    """
+    legacy = {"code": "EMD2", "primary_kcc_ids": ["kcc-01", "kcc-06"],
+              "secondary_kcc_ids": ["kcc-08", "kcc-02"]}
+    out = _normalise_domain(legacy)
+    assert out["home_kcc_ids"] == ["kcc-01", "kcc-06"]
+    assert out["downstream_kcc_ids"] == ["kcc-02", "kcc-08"]     # untyped, and sorted
+    assert out["upstream_kcc_ids"] == []                          # never invented
+    assert out["contrastive_kcc_ids"] == []
+
+
+def test_domain_payload_always_carries_every_relation_field():
+    """Whatever the source served, a page can index the four fields directly."""
+    for payload in ({}, {"primary_kcc_ids": ["kcc-01"]},
+                    {"home_kcc_ids": ["kcc-06"], "upstream_kcc_ids": ["kcc-05"]}):
+        out = _normalise_domain(payload)
+        for field in DOMAIN_REL_FIELDS.values():
+            assert isinstance(out[field], list), f"{field} missing for {payload}"
+        assert "primary_kcc_ids" in out and "secondary_kcc_ids" in out
+
+
+def test_domain_payload_reads_a_pre_migration_database(db):
+    """A released dataset may still carry primary/secondary; it must still render."""
+    class _Link:
+        def __init__(self, kcc_id, relation):
+            self.kcc_id, self.relation = kcc_id, relation
+
+    out = _relation_lists([_Link("kcc-01", "primary"), _Link("kcc-08", "secondary"),
+                           _Link("kcc-09", "contrastive")])
+    assert out["home_kcc_ids"] == ["kcc-01"]
+    assert out["downstream_kcc_ids"] == ["kcc-08"]
+    assert out["contrastive_kcc_ids"] == ["kcc-09"]
+
+
+def test_live_domain_payload_matches_the_database(db):
+    """The shipped dataset, read the way the page reads it."""
+    from hkcc.app.data_client import list_candidate_domains
+
+    payload = {d["code"]: d for d in list_candidate_domains()}
+    assert payload, "no domains served"
+    for d in db.scalars(select(CandidateDomain)):
+        served = payload[d.code]
+        for rel, field in DOMAIN_REL_FIELDS.items():
+            expected = sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == rel)
+            assert served[field] == expected, f"{d.code} {field}"
 
 
 def test_every_domain_declares_its_evidence_bar(db):
