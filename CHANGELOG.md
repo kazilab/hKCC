@@ -3,6 +3,50 @@
 All notable changes to hKCC. Dataset and code are versioned together; the
 version lives in `pyproject.toml` and nothing else hardcodes it.
 
+## [Unreleased]
+
+### Changed
+- **`candidate_domain_kccs.relation` now takes four values** — `home`,
+  `downstream`, `upstream`, `contrastive` — replacing `primary`/`secondary`.
+  The old pair was carrying four meanings at once (*files here*, *causes this*,
+  *is caused by this*, *is the opposite of this*), which left two links pointing
+  the wrong way down the causal chain and one link unstatable. Section 3 of the
+  manuscript requires explicit attribution of direction; the schema can now
+  express it. Migrate with
+  `python -m hkcc.pipelines.migrate_domain_relations --apply`.
+- Reassigned all 19 EMD–KCC links from the link-by-link audit against §4, §5.1–5.4,
+  the KCC scope text, and the shipped assay annotations. Six links are now `home`
+  where sixteen were `primary`, so the designation discriminates again.
+- **EMD4–KCC9 is `contrastive`, not a home.** KCC9 is defined as *bypass* of
+  replicative senescence; EMD4 measures *induction* of it. As a primary home it
+  filed an agent under a characteristic meaning the opposite of what was observed.
+  The link is kept — it is evidentially adjacent — but can no longer read as a
+  positive.
+- **EMD1–KCC5, EMD3–KCC8 and EMD4–KCC5 are `upstream`.** In each, the KCC induces
+  the domain rather than following from it (§5.1 "redox stress *mediates* the
+  change"; §5.3 "receptor signalling *controls* the transition").
+- `2_Browse_KCCs` shows the four relations separately, and marks the contrastive
+  link as never a positive.
+
+### Added
+- `EMD2–KCC2` (`downstream`). The platform already shipped a
+  *"Colibactin / genotoxin adduct & pks-island detection"* assay under EMD2 while
+  the mapping table denied any KCC2 link; a bacterially produced genotoxin forming
+  DNA adducts is KCC2.
+- API fields `home_kcc_ids`, `downstream_kcc_ids`, `upstream_kcc_ids`,
+  `contrastive_kcc_ids` on `/api/v1/domains`. `primary_kcc_ids` /
+  `secondary_kcc_ids` are kept for compatibility and collapse to `home` and
+  not-`home`, discarding direction.
+- `hkcc.pipelines.migrate_domain_relations`, a documented dry-run/`--apply`
+  migration carrying the audited mapping and its per-link rationale.
+- Tests: every domain must have at least one `home`, and `contrastive` is pinned
+  to the single EMD4–KCC9 link so it cannot spread without a manuscript change.
+
+### Note
+- `CD5` (gap-junctional communication) is outside the manuscript's four domains and
+  was **not** audited. Its links were carried over structurally (`primary`→`home`,
+  `secondary`→`downstream`) and need separate review.
+
 ## [0.0.10]
 
 Consolidates the pre-publication review: two data sources, a package that ships

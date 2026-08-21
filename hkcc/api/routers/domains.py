@@ -40,8 +40,12 @@ def _out(d: CandidateDomain) -> CandidateDomainOut:
         key_exclusions=d.key_exclusions,
         status=d.status,
         source_ref_id=d.source_ref_id,
-        primary_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "primary"),
-        secondary_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "secondary"),
+        home_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "home"),
+        downstream_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "downstream"),
+        upstream_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "upstream"),
+        contrastive_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "contrastive"),
+        primary_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "home"),
+        secondary_kcc_ids=sorted(lk.kcc_id for lk in d.kcc_links if lk.relation != "home"),
         assay_ids=sorted(lk.assay_id for lk in d.assay_links),
         assay_links=sorted(
             (

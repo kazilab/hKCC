@@ -248,8 +248,15 @@ def list_candidate_domains() -> list[dict]:
                 "key_exclusions": d.key_exclusions,
                 "status": d.status,
                 "source_ref_id": d.source_ref_id,
-                "primary_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "primary"),
-                "secondary_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "secondary"),
+                "home_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "home"),
+                "downstream_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "downstream"),
+                "upstream_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "upstream"),
+                "contrastive_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "contrastive"),
+                # Deprecated two-value view, kept so existing callers keep working.
+                # "primary" collapses to `home`; everything else is "secondary",
+                # which is exactly what the four relations exist to separate.
+                "primary_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation == "home"),
+                "secondary_kcc_ids": sorted(lk.kcc_id for lk in d.kcc_links if lk.relation != "home"),
                 "assay_ids": sorted(lk.assay_id for lk in d.assay_links),
                 # Structured form: a domain"s minimum_evidence can demand a
                 # functional readout, so the level has to survive the API.

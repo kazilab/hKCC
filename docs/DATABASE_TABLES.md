@@ -72,7 +72,18 @@ erDiagram
 
 ### `candidate_domain_kccs` (22 rows)
 
-**Purpose:** Parent links from a domain to the KCCs it overlaps. `relation` is `primary` or `secondary`. A domain with no parent would be a fourteenth characteristic by stealth, so the test suite forbids it.
+**Purpose:** Parent links from a domain to the KCCs it touches. A domain with no parent would be a fourteenth characteristic by stealth, so the test suite forbids it.
+
+`relation` takes four values, because `primary`/`secondary` was carrying four meanings at once and could express neither direction nor opposing polarity:
+
+| value | meaning |
+|---|---|
+| `home` | The KCC an observation files under, in essentially every instance of the domain. The only relation that means "the domain belongs here"; the test suite requires each domain to have at least one. |
+| `downstream` | A KCC endpoint the domain can produce. Case-dependent. |
+| `upstream` | A KCC that induces or enables the domain — the same pair of nodes with the arrow reversed. |
+| `contrastive` | A KCC of opposing polarity: evidentially adjacent, informative, and **never a positive**. Reserved for EMD4–KCC9, where the domain measures induction of senescence and the characteristic is defined as bypass of it. |
+
+The API exposes these as `home_kcc_ids` / `downstream_kcc_ids` / `upstream_kcc_ids` / `contrastive_kcc_ids`. The older `primary_kcc_ids` / `secondary_kcc_ids` fields are kept for compatibility and collapse to `home` and not-`home` respectively, discarding direction.
 
 ### `candidate_domain_assays` · `candidate_domain_references`
 

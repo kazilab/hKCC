@@ -44,6 +44,16 @@ class CandidateDomainOut(BaseModel):
     key_exclusions: str
     status: str
     source_ref_id: str | None = None
+    # How the domain relates to each established KCC. `home` is the only one
+    # that means "the evidence files here"; `upstream` runs the other way down
+    # the causal chain, and `contrastive` marks opposing polarity and must never
+    # be read as a positive.
+    home_kcc_ids: list[str] = Field(default_factory=list)
+    downstream_kcc_ids: list[str] = Field(default_factory=list)
+    upstream_kcc_ids: list[str] = Field(default_factory=list)
+    contrastive_kcc_ids: list[str] = Field(default_factory=list)
+    # Deprecated: the two-value view. `primary` is `home`; `secondary` is
+    # everything else, which discards the direction the fields above carry.
     primary_kcc_ids: list[str] = Field(default_factory=list)
     secondary_kcc_ids: list[str] = Field(default_factory=list)
     # Kept for compatibility; `assay_links` carries the evidence level.

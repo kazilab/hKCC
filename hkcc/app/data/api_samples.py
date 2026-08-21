@@ -103,8 +103,12 @@ ENDPOINTS: dict[str, dict] = {
     "key_exclusions": "Taxonomic shifts or diversity indices alone ...",
     "status": "candidate",
     "source_ref_id": "kazi2026-emd",
-    "primary_kcc_ids": ["kcc-01", "kcc-06", "kcc-07", "kcc-08", "kcc-10"],
-    "secondary_kcc_ids": [],
+    "home_kcc_ids": ["kcc-01", "kcc-06"],
+    "downstream_kcc_ids": ["kcc-02", "kcc-07", "kcc-08", "kcc-10"],
+    "upstream_kcc_ids": [],
+    "contrastive_kcc_ids": [],
+    "primary_kcc_ids": ["kcc-01", "kcc-06"],
+    "secondary_kcc_ids": ["kcc-02", "kcc-07", "kcc-08", "kcc-10"],
     "assay_ids": ["kcc-microbiome-16s"],
     "reference_ids": []
   }

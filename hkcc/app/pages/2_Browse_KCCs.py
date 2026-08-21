@@ -126,9 +126,19 @@ for di, d in enumerate(domains):
     with card(f"kccs-domain-{di}"):
         st.markdown(f"**{d['code']} · {d['title']}**")
         st.write(d["definition"])
-        prim = ", ".join(kcc_short.get(i, i) for i in d["primary_kcc_ids"]) or "—"
-        sec = ", ".join(kcc_short.get(i, i) for i in d["secondary_kcc_ids"])
-        st.caption(f"Primary KCCs: {prim}" + (f"  ·  Secondary: {sec}" if sec else ""))
+        # Four relations, not two. Direction is the point: `upstream` runs the
+        # other way, and `contrastive` is adjacent evidence of the opposite sign
+        # that must never be read as a positive for the agent.
+        names = lambda ids: ", ".join(kcc_short.get(i, i) for i in ids)
+        st.caption(f"**Files under:** {names(d['home_kcc_ids']) or '—'}")
+        if d["downstream_kcc_ids"]:
+            st.caption(f"Downstream consequences: {names(d['downstream_kcc_ids'])}")
+        if d["upstream_kcc_ids"]:
+            st.caption(f"Upstream (induces this domain): {names(d['upstream_kcc_ids'])}")
+        if d["contrastive_kcc_ids"]:
+            st.caption(
+                f"⊣ Opposing polarity — never a positive: {names(d['contrastive_kcc_ids'])}"
+            )
         if not d.get("assay_links"):
             st.caption("⚠ No candidate assays mapped yet — the evidence bar has nothing to apply to.")
         with st.expander("Evidence bar and exclusions"):

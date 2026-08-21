@@ -82,15 +82,35 @@ class CandidateDomain(Base):
     )
 
 
+#: How a candidate domain relates to one of the ten established KCCs. Four
+#: values, because the old primary/secondary pair was carrying four meanings and
+#: could express neither direction (section 3 requires it) nor opposing polarity.
+#:
+#: ``home``        the KCC an observation files under, in essentially every
+#:                 instance of the domain - the only relation that reads as
+#:                 "the domain belongs here"
+#: ``downstream``  a KCC endpoint the domain can produce; case-dependent
+#: ``upstream``    a KCC that induces or enables the domain (arrow reversed)
+#: ``contrastive`` a KCC of opposing polarity: evidentially adjacent, and never
+#:                 a positive (EMD4 measures induction of senescence; KCC9 is
+#:                 defined as *bypass* of it)
+DOMAIN_KCC_RELATIONS = ("home", "downstream", "upstream", "contrastive")
+
+
 class CandidateDomainKCC(Base):
-    """Parent-KCC link. ``relation`` is 'primary' or 'secondary'."""
+    """Parent-KCC link. ``relation`` is one of :data:`DOMAIN_KCC_RELATIONS`."""
 
     __tablename__ = "candidate_domain_kccs"
-    __table_args__ = (CheckConstraint("relation IN ('primary','secondary')", name="ck_domain_kcc_relation"),)
+    __table_args__ = (
+        CheckConstraint(
+            "relation IN ('home','downstream','upstream','contrastive')",
+            name="ck_domain_kcc_relation",
+        ),
+    )
 
     domain_id: Mapped[str] = mapped_column(ForeignKey("candidate_domains.id", ondelete="CASCADE"), primary_key=True)
     kcc_id: Mapped[str] = mapped_column(ForeignKey("kccs.id", ondelete="CASCADE"), primary_key=True)
-    relation: Mapped[str] = mapped_column(String(16), nullable=False, default="primary")
+    relation: Mapped[str] = mapped_column(String(16), nullable=False, default="home")
 
     domain: Mapped["CandidateDomain"] = relationship(back_populates="kcc_links")
     kcc: Mapped["KCC"] = relationship()
