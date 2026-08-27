@@ -266,6 +266,12 @@ def _normalise_domain(d: dict) -> dict:
         "secondary_kcc_ids",
         sorted(d["downstream_kcc_ids"] + d["upstream_kcc_ids"] + d["contrastive_kcc_ids"]),
     )
+    # Same reason as the relation fields above: an API one version behind knows
+    # nothing about validation examples, and the page must render without them
+    # rather than raising KeyError on load.
+    d["validation_examples"] = sorted(
+        d.get("validation_examples") or [], key=lambda v: v.get("sort_order", 0)
+    )
     return d
 
 
@@ -292,6 +298,7 @@ def list_candidate_domains() -> list[dict]:
                 selectinload(CandidateDomain.kcc_links),
                 selectinload(CandidateDomain.assay_links),
                 selectinload(CandidateDomain.reference_links),
+                selectinload(CandidateDomain.validation_examples),
             )
             .order_by(CandidateDomain.n)
         ).all()
@@ -322,6 +329,29 @@ def list_candidate_domains() -> list[dict]:
                     key=lambda link: link["assay_id"],
                 ),
                 "reference_ids": sorted(lk.reference_id for lk in d.reference_links),
+                # Non-scoring model-derived annotation guidance. Shaped exactly
+                # like the API's DomainValidationExampleOut - the parity tests
+                # compare the two paths key by key.
+                "validation_examples": [
+                    {
+                        "id": v.id,
+                        "domain_id": v.domain_id,
+                        "kcc_id": v.kcc_id,
+                        "sort_order": v.sort_order,
+                        "title": v.title,
+                        "alternative_explanation": v.alternative_explanation,
+                        "insufficient_measurement": v.insufficient_measurement,
+                        "discriminating_measurement": v.discriminating_measurement,
+                        "simulation_finding": v.simulation_finding,
+                        "annotation_implication": v.annotation_implication,
+                        "evidentiary_status": v.evidentiary_status,
+                        "evidentiary_note": v.evidentiary_note,
+                        "robustness_note": v.robustness_note,
+                        "source_locator": v.source_locator,
+                        "source_ref_id": v.source_ref_id,
+                    }
+                    for v in sorted(d.validation_examples, key=lambda v: v.sort_order)
+                ],
             })
             for d in rows
         ]

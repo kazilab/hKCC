@@ -1,6 +1,6 @@
 # hKCC - Key Characteristics of Human Carcinogens
 
-An open database mapping mechanistic evidence from carcinogenic agents to the ten Key Characteristics (KCC) framework, with a second layer of cross-cutting candidate domains.
+An open database mapping mechanistic evidence from carcinogenic agents to the ten Key Characteristics (KCC) framework, with a second layer of cross-cutting candidate domains. EMD1–EMD4 domain payloads also expose non-scoring, model-derived validation examples: what evidence is insufficient for the domain, and what would discriminate the mechanism.
 
 > **Status: early development (v0.0.x).** The dataset, the schema and the API are all
 > still changing between releases. Scores are derived from published source tables by
@@ -40,7 +40,7 @@ hkcc info       # version + dataset location
 ```
 
 The dataset ships inside the package — `pip install hkcc` gives you all ten KCCs,
-171 agents, 844 evidence cells, 573 assays, 1,171 references and the IARC
+171 agents, 844 evidence cells, 573 assays, 1,172 references and the IARC
 Monograph matrix, with no build step, no database server and no `.env` file.
 
 **Coverage.** The mechanistic evidence derives from two published sources: the
@@ -77,7 +77,7 @@ export DATABASE_URL="sqlite:////absolute/path/to/hkcc.db"
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/v1/kccs` | The ten established KCCs (reference ontology) |
-| `GET /api/v1/domains` | Cross-cutting candidate domains (EMD1–4, CD5) |
+| `GET /api/v1/domains` | Cross-cutting candidate domains (EMD1–4, CD5), each with non-scoring model-derived validation examples |
 | `GET /api/v1/agents` | List agents |
 | `GET /api/v1/agents/{id}/references` | KCAD references linked to an agent |
 | `GET /api/v1/matrix` | Evidence matrix |

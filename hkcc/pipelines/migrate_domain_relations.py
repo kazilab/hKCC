@@ -25,6 +25,10 @@ New vocabulary
     positive. EMD4 -> KCC9 is the only such link (a domain measuring induction
     of senescence against a characteristic defined as *bypass* of it).
 
+EMD3 -> KCC9 was reassigned from ``home`` to ``downstream`` after the EMD3
+simulation; the rationale is on the entry itself. Re-running this migration
+applies it, because the table is rebuilt from ``TARGET`` rather than patched.
+
 Migration is not mechanical: ``primary`` does not map onto ``home``. The values
 below come from the link-by-link audit against sections 4 and 5.1-5.4, the KCC
 scope text in ``kccs``, and the shipped assay annotations. CD5 is the one
@@ -65,7 +69,20 @@ TARGET: dict[str, dict[int, str]] = {
     },
     "EMD3": {
         4: "home",          # a durable identity change is epigenetically implemented
-        9: "home",          # section 5.3's strong overlap (see the KCC9 scope caveat in the paper)
+        9: "downstream",    # WAS home. Section 5.3 flagged in prose that KCC9 is narrowly defined
+                            # - telomerase activation or replicative bypass - and that a stem-like
+                            # state is neither, while Table 1 filed it as primary anyway. The EMD3
+                            # simulation settles it: the immortal basin rises 10.2% -> 14.3% under
+                            # the supported perturbation while immortal *reachability* stays at
+                            # exactly zero in every condition, including the arm driving the
+                            # stem-like state to 100% reachability (checks V3, V15). "Files under
+                            # KCC9 in essentially every instance" is, in the model, no instance.
+                            #
+                            # downstream, not contrastive: EMD4-KCC9 is opposite-sign on one axis
+                            # (induction vs bypass of senescence). This is a null on the exposure
+                            # path plus a shared-marker conflation risk - the refined framework
+                            # lists stem-cell genes among KCC9-relevant endpoints - so it is a
+                            # case-dependent endpoint needing its own readout, not the opposite.
         10: "downstream",
         8: "upstream",      # section 5.3: receptor signalling *controls the transition*
     },

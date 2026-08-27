@@ -80,6 +80,11 @@ class CandidateDomain(Base):
     reference_links: Mapped[list["CandidateDomainReference"]] = relationship(
         back_populates="domain", cascade="all, delete-orphan"
     )
+    validation_examples: Mapped[list["CandidateDomainValidationExample"]] = relationship(
+        back_populates="domain",
+        cascade="all, delete-orphan",
+        order_by="CandidateDomainValidationExample.sort_order",
+    )
 
 
 #: How a candidate domain relates to one of the ten established KCCs. Four
@@ -140,6 +145,79 @@ class CandidateDomainReference(Base):
 
     domain: Mapped["CandidateDomain"] = relationship(back_populates="reference_links")
     reference: Mapped["Reference"] = relationship()
+
+
+#: What kind of thing a validation example is. Deliberately *not* ordered: a
+#: `structural` result is not weaker than a `data-constrained` one, it answers a
+#: different question. Free text here would make the "no implied strength scale"
+#: rule in the UI unenforceable, so the vocabulary is closed.
+VALIDATION_EVIDENTIARY_STATUS = (
+    "data-constrained",    # fitted or digitised against measured quantities
+    "design-constrained",  # magnitudes assigned to match a study design, not fitted
+    "structural",          # a property of the model wiring or algebra
+    "illustrative",        # plausible magnitudes chosen to demonstrate a relationship
+    "prior-dominated",     # anchored to published observation, magnitudes mostly chosen
+    "predictive",          # a held-out model output, not matched empirical validation
+)
+
+
+class CandidateDomainValidationExample(Base):
+    """A simulation-derived annotation rule for a candidate domain.
+
+    These say what is *insufficient* to support a domain annotation, what
+    competing explanation has to be excluded, and which measurement discriminates
+    between them. They come from the systems models in the EMD simulation paper.
+
+    They are guidance, not evidence. There is deliberately no ``score`` column
+    and no foreign key from ``evidence``: a model result is not an independent
+    mechanistic positive, and counting one would double-count the very
+    observations used to constrain the model. See docs/KCC_EVIDENCE_RULES.md.
+    """
+
+    __tablename__ = "candidate_domain_validation_examples"
+    __table_args__ = (
+        UniqueConstraint("domain_id", "sort_order", name="uq_domain_validation_sort"),
+        CheckConstraint("sort_order > 0", name="ck_domain_validation_sort"),
+        CheckConstraint(
+            "evidentiary_status IN ('data-constrained','design-constrained','structural',"
+            "'illustrative','prior-dominated','predictive')",
+            name="ck_domain_validation_status",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    domain_id: Mapped[str] = mapped_column(
+        ForeignKey("candidate_domains.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Which parent KCC the example is about. Nullable because an example can be
+    # about the domain as a whole; when set, the (domain, kcc) pair must already
+    # be a link in `candidate_domain_kccs` - the example annotates a relation
+    # that exists, it does not create one.
+    kcc_id: Mapped[str | None] = mapped_column(ForeignKey("kccs.id", ondelete="SET NULL"), index=True)
+    sort_order: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    # The four fields that make the example usable rather than decorative: what
+    # else could explain the observation, what does not settle it, what does,
+    # and what the model actually showed.
+    alternative_explanation: Mapped[str] = mapped_column(Text, nullable=False)
+    insufficient_measurement: Mapped[str] = mapped_column(Text, nullable=False)
+    discriminating_measurement: Mapped[str] = mapped_column(Text, nullable=False)
+    simulation_finding: Mapped[str] = mapped_column(Text, nullable=False)
+    annotation_implication: Mapped[str] = mapped_column(Text, nullable=False)
+
+    #: One of :data:`VALIDATION_EVIDENTIARY_STATUS`.
+    evidentiary_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    evidentiary_note: Mapped[str | None] = mapped_column(Text)
+    # Where the result was fragile, and where it was not. Kept because dropping
+    # it would turn a heuristic sensitivity count into an unqualified claim.
+    robustness_note: Mapped[str | None] = mapped_column(Text)
+    # The individual validation check, which the reference cannot identify.
+    source_locator: Mapped[str | None] = mapped_column(String(255))
+    source_ref_id: Mapped[str | None] = mapped_column(ForeignKey("references.id", ondelete="SET NULL"), index=True)
+
+    domain: Mapped["CandidateDomain"] = relationship(back_populates="validation_examples")
+    kcc: Mapped["KCC"] = relationship()
 
 
 class Agent(Base):

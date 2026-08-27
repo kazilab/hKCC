@@ -27,6 +27,7 @@ from hkcc.db.models import (
     CandidateDomainAssay,
     CandidateDomainKCC,
     CandidateDomainReference,
+    CandidateDomainValidationExample,
     DatasetRelease,
     Evidence,
     EvidenceCitation,
@@ -106,6 +107,11 @@ def export_release(tag: str) -> Path:
         candidate_domain_kccs = pd.read_sql(select(CandidateDomainKCC), db.bind)
         candidate_domain_assays = pd.read_sql(select(CandidateDomainAssay), db.bind)
         candidate_domain_references = pd.read_sql(select(CandidateDomainReference), db.bind)
+        # Non-scoring Layer-2 guidance. Exported so a release carries the rules
+        # for reading the domains, not just the domains.
+        candidate_domain_validation_examples = pd.read_sql(
+            select(CandidateDomainValidationExample), db.bind
+        )
 
         tables: dict[str, pd.DataFrame] = {
             "kccs": kccs,
@@ -132,6 +138,7 @@ def export_release(tag: str) -> Path:
             "candidate_domain_kccs": candidate_domain_kccs,
             "candidate_domain_assays": candidate_domain_assays,
             "candidate_domain_references": candidate_domain_references,
+            "candidate_domain_validation_examples": candidate_domain_validation_examples,
         }
         csv_files = [f"{name}.csv" for name in tables]
         parquet_files = [f"{name}.parquet" for name in tables]

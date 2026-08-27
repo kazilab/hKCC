@@ -31,6 +31,37 @@ class DomainAssayLinkOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DomainValidationExampleOut(BaseModel):
+    """A simulation-derived annotation rule for a domain.
+
+    Model-derived design guidance: what does not settle a question, what does,
+    and which competing explanation has to be excluded. Deliberately carries no
+    score — a model result is not an independent mechanistic positive, and the
+    observations that constrained the model cannot be counted twice.
+    """
+
+    id: str
+    domain_id: str
+    kcc_id: str | None = None
+    sort_order: int
+    title: str
+    alternative_explanation: str
+    insufficient_measurement: str
+    discriminating_measurement: str
+    simulation_finding: str
+    annotation_implication: str
+    # One of hkcc.db.models.VALIDATION_EVIDENTIARY_STATUS. Not an ordered scale:
+    # `structural` is not weaker than `data-constrained`, it answers a different
+    # question. Consumers must not rank on it.
+    evidentiary_status: str
+    evidentiary_note: str | None = None
+    robustness_note: str | None = None
+    source_locator: str | None = None
+    source_ref_id: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class CandidateDomainOut(BaseModel):
     """A Layer-2 cross-cutting domain. Carries no score by design."""
 
@@ -60,6 +91,8 @@ class CandidateDomainOut(BaseModel):
     assay_ids: list[str] = Field(default_factory=list)
     assay_links: list[DomainAssayLinkOut] = Field(default_factory=list)
     reference_ids: list[str] = Field(default_factory=list)
+    # Non-scoring model-derived guidance; see DomainValidationExampleOut.
+    validation_examples: list[DomainValidationExampleOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

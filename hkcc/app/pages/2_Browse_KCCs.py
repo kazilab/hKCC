@@ -154,3 +154,38 @@ for di, d in enumerate(domains):
                 for link in d["assay_links"]:
                     level = _levels.get(link.get("evidence_level"), link.get("evidence_level") or "unclassified")
                     st.caption(f"`{link['assay_id']}` — {level}")
+
+        # Layer-2 guidance, not Layer-1 evidence. The expander is hidden rather
+        # than shown empty for a domain with none (CD5): an empty panel reads as
+        # "not yet done" and invites someone to fill it in, which for CD5 would
+        # mean inventing simulation results that do not exist.
+        examples = d.get("validation_examples") or []
+        if examples:
+            with st.expander(f"Simulation-derived validation examples ({len(examples)})"):
+                st.caption(
+                    "Model-derived validation and design examples — **not** additional KCC "
+                    "evidence and **not** independent positives. They say what a measurement "
+                    "cannot settle and what would settle it."
+                )
+                for ei, ex in enumerate(examples):
+                    if ei:
+                        st.markdown("---")
+                    kcc = kcc_short.get(ex.get("kcc_id"), ex.get("kcc_id"))
+                    st.markdown(f"**{ex['title']}**" + (f" · {kcc}" if kcc else ""))
+                    st.markdown(f"**Competing explanation.** {ex['alternative_explanation']}")
+                    st.markdown(f"**Not sufficient alone.** {ex['insufficient_measurement']}")
+                    st.markdown(f"**Discriminating measurement.** {ex['discriminating_measurement']}")
+                    st.markdown(f"**Model result.** {ex['simulation_finding']}")
+                    st.markdown(f"**For annotation.** {ex['annotation_implication']}")
+                    # Status is rendered as plain text on purpose. The vocabulary
+                    # is a kind, not a rank: a `structural` result is not weaker
+                    # than a `data-constrained` one, so no badge, colour ramp or
+                    # ordering may suggest otherwise.
+                    status = f"Status: {ex['evidentiary_status']}"
+                    if ex.get("evidentiary_note"):
+                        status += f" — {ex['evidentiary_note']}"
+                    st.caption(status)
+                    if ex.get("robustness_note"):
+                        st.caption(f"Robustness: {ex['robustness_note']}")
+                    if ex.get("source_locator"):
+                        st.caption(f"Source: {ex['source_locator']}")

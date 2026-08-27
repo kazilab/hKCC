@@ -89,7 +89,9 @@ ENDPOINTS: dict[str, dict] = {
         "path": "/api/v1/domains",
         "desc": (
             "Layer 2: cross-cutting candidate domains. Each parents onto one or more KCCs and "
-            "carries no score of its own — an observation is counted once, against its KCC."
+            "carries no score of its own — an observation is counted once, against its KCC. "
+            "`validation_examples` are model-derived annotation rules from the EMD simulation "
+            "paper; they carry no score either and are not independent KCC positives."
         ),
         "sample": """[
   {
@@ -110,7 +112,26 @@ ENDPOINTS: dict[str, dict] = {
     "primary_kcc_ids": ["kcc-01", "kcc-06"],
     "secondary_kcc_ids": ["kcc-02", "kcc-07", "kcc-08", "kcc-10"],
     "assay_ids": ["kcc-microbiome-16s"],
-    "reference_ids": []
+    "reference_ids": [],
+    "validation_examples": [
+      {
+        "id": "emd2-val-01",
+        "domain_id": "emd2",
+        "kcc_id": "kcc-01",
+        "sort_order": 1,
+        "title": "A urinary metabolite can be matched by a host-only null",
+        "alternative_explanation": "Host metabolism alone generates the observed BCPN.",
+        "insufficient_measurement": "Urinary BCPN, or total urothelial metabolite exposure.",
+        "discriminating_measurement": "Paired luminal and systemic measurements, ...",
+        "simulation_finding": "A refitted host-only model reproduces urinary BCPN while ...",
+        "annotation_implication": "Metabolite presence alone is not enough when host and ...",
+        "evidentiary_status": "design-constrained",
+        "evidentiary_note": "Toxicokinetic model; absolute microbial capacities are illustrative.",
+        "robustness_note": "The null comparison held in 400/400 heuristic rate-perturbation draws.",
+        "source_locator": "EMD2 validation check V7",
+        "source_ref_id": "kazi2026-emd-sim"
+      }
+    ]
   }
 ]""",
     },

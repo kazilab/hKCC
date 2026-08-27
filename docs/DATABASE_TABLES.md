@@ -35,7 +35,17 @@ erDiagram
     kccs ||--o{ iarc_monograph_kc_calls : ""
     agents ||--o{ iarc_monograph_kc_strength : ""
     kccs ||--o{ iarc_monograph_kc_strength : ""
+    candidate_domains ||--o{ candidate_domain_kccs : ""
+    kccs ||--o{ candidate_domain_kccs : ""
+    candidate_domains ||--o{ candidate_domain_validation_examples : ""
+    kccs ||--o{ candidate_domain_validation_examples : "annotated, never scored"
+    references ||--o{ candidate_domain_validation_examples : ""
 ```
+
+Note what is **absent** from the diagram: there is no edge between `evidence` and
+any `candidate_domain*` table. That is the dual-layer rule expressed as schema —
+a Layer-2 annotation cannot add an independent positive because there is no path
+by which it could reach a score.
 
 **Hub tables:** `kccs`, `agents`, `references`, `assays`  
 **Junction / detail tables:** everything else links these four.
@@ -70,7 +80,7 @@ erDiagram
 
 **Code usage:** `GET /api/v1/domains`, `list_candidate_domains()` in `hkcc/app/data_client.py`, the Layer-2 section of the Browse KCCs page.
 
-### `candidate_domain_kccs` (22 rows)
+### `candidate_domain_kccs` (23 rows)
 
 **Purpose:** Parent links from a domain to the KCCs it touches. A domain with no parent would be a fourteenth characteristic by stealth, so the test suite forbids it.
 
@@ -83,11 +93,31 @@ erDiagram
 | `upstream` | A KCC that induces or enables the domain — the same pair of nodes with the arrow reversed. |
 | `contrastive` | A KCC of opposing polarity: evidentially adjacent, informative, and **never a positive**. Reserved for EMD4–KCC9, where the domain measures induction of senescence and the characteristic is defined as bypass of it. |
 
+EMD3–KCC9 was reassigned from `home` to `downstream` after the EMD3 simulation. A stem-like state is not telomerase activation or replicative bypass: in the model the immortal *basin* rises 10.2% → 14.3% with exposure while immortal *reachability* stays at exactly zero in every arm. It is `downstream` rather than `contrastive` because the relation is a null on the exposure path plus a shared-marker conflation risk, not the opposing polarity EMD4 carries. See `candidate_domain_validation_examples.emd3-val-04`.
+
 The API exposes these as `home_kcc_ids` / `downstream_kcc_ids` / `upstream_kcc_ids` / `contrastive_kcc_ids`. The older `primary_kcc_ids` / `secondary_kcc_ids` fields are kept for compatibility and collapse to `home` and not-`home` respectively, discarding direction.
 
 ### `candidate_domain_assays` · `candidate_domain_references`
 
 **Purpose:** Assays that can measure a domain (with an `evidence_level` of `descriptive` or `functional`) and its anchor literature. Both were migrated from the former `assay_kccs` / `reference_kccs` rows of the extended KCCs.
+
+### `candidate_domain_validation_examples` (13 rows)
+
+**Purpose:** Simulation-derived annotation rules for a domain — what a measurement cannot settle, what competing explanation must be excluded, and which measurement discriminates. They come from the systems models in the EMD simulation paper.
+
+**They are not evidence, and not agent annotations.** There is no `score` column and no foreign key from `evidence`, by design: the observations used to constrain a model are already scored on Layer 1, so counting the model's output would double-count them. A validation example is not an evidence cell and never enters a positive count. See [KCC_EVIDENCE_RULES.md](KCC_EVIDENCE_RULES.md).
+
+**Key columns:** `id`, `domain_id`, `kcc_id` (nullable), `sort_order`, `title`, `alternative_explanation`, `insufficient_measurement`, `discriminating_measurement`, `simulation_finding`, `annotation_implication`, `evidentiary_status`, `evidentiary_note`, `robustness_note`, `source_locator`, `source_ref_id`.
+
+A domain carries several examples, ordered by `sort_order` (unique within a domain). When `kcc_id` is set, `(domain_id, kcc_id)` must already exist in `candidate_domain_kccs` — an example annotates a relation, it cannot create one.
+
+`evidentiary_status` is a closed vocabulary: `data-constrained`, `design-constrained`, `structural`, `illustrative`, `prior-dominated`, `predictive`. **It is a kind, not a rank.** A `structural` result is not weaker than a `data-constrained` one; it answers a different question. Nothing may sort, colour-ramp or badge on it.
+
+**Source:** the EMD simulation paper (`kazi2026-emd-sim`) — a different record from `kazi2026-emd`, which proposes the domains. `source_locator` names the individual validation check, which the reference cannot.
+
+**Coverage:** EMD1 3, EMD2 3, EMD3 4, EMD4 3, CD5 0. CD5 is outside the simulation paper's scope; examples for it would have to be invented, so it has none.
+
+**Code usage:** `GET /api/v1/domains` and `/domains/{id}` (`validation_examples`), `list_candidate_domains()`, the Layer-2 expander on the Browse KCCs page, `hkcc/pipelines/migrate_domain_validation_examples.py`, release exports.
 
 ---
 
@@ -222,7 +252,7 @@ Parent compounds, their salts and IARC's combined entries (e.g. `aniline`, `anil
 
 ## 4. Literature
 
-### `references` (1,171 rows)
+### `references` (1,172 rows)
 
 **Purpose:** Bibliographic records (KCAD studies, foundational papers, KCAD source paper, Rusyn 2024).
 

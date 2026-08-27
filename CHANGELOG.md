@@ -5,7 +5,41 @@ version lives in `pyproject.toml` and nothing else hardcodes it.
 
 ## [Unreleased]
 
+### Added
+- **`candidate_domain_validation_examples`** — a non-scoring Layer-2 table holding
+  simulation-derived annotation rules: what a measurement cannot settle, which
+  competing explanation must be excluded, and what would discriminate. 13 examples
+  across EMD1–EMD4 (3/3/4/3); CD5 has none, and inventing them is forbidden by test.
+  No `score` column, no foreign key from `evidence` — a model result is not an
+  independent positive, and the observations that constrained the model are already
+  scored on Layer 1. `evidentiary_status` is a CHECK-constrained vocabulary and is
+  explicitly *not* a strength ordering.
+- API: `validation_examples` on `GET /api/v1/domains` and `/domains/{id}`, sorted by
+  `sort_order`. Both data-client paths return the same shape; an API too old to send
+  the field normalises to `[]` rather than raising on page load.
+- UI: a "Simulation-derived validation examples" expander on the Layer-2 section of
+  `2_Browse_KCCs`, labelled model-derived and non-scoring. Hidden for CD5.
+- `hkcc.pipelines.migrate_domain_validation_examples`, a dry-run/`--apply` migration
+  that validates every `(domain, KCC)` against `candidate_domain_kccs` before writing,
+  is idempotent, and leaves `evidence` byte-identical.
+- Reference `kazi2026-emd-sim` (Kazi, Sarigiannis & Pienta, *Systems biology models
+  test emerging mechanistic domains in carcinogen evidence mapping*). Separate from
+  `kazi2026-emd`, which proposes the domains — pointing the examples at the framework
+  paper would have misattributed them. Manuscript record, no DOI, as with its
+  companion.
+- The new table ships in release exports (CSV/JSON/Parquet, manifests and archives).
+- `tests/test_domain_validation_examples.py` (23 tests).
+
 ### Changed
+- **EMD3–KCC9 is `downstream`, not a `home`.** Table 1 filed KCC9 as an EMD3 primary
+  while §5.3 said in prose that a stem-like state is neither telomerase activation
+  nor replicative bypass. The EMD3 simulation settles it: the immortal *basin* rises
+  10.2% → 14.3% under the supported perturbation while immortal *reachability* stays
+  at exactly zero in every condition, including the arm driving the stem-like state
+  to 100% reachability (checks V3, V15). Deliberately not `contrastive` — that is
+  opposing polarity, which is EMD4–KCC9's relation; this is a null on the exposure
+  path plus a shared-marker conflation risk. KCC4 remains EMD3's sole home.
+  Re-run `python -m hkcc.pipelines.migrate_domain_relations --apply` to apply.
 - **`candidate_domain_kccs.relation` now takes four values** — `home`,
   `downstream`, `upstream`, `contrastive` — replacing `primary`/`secondary`.
   The old pair was carrying four meanings at once (*files here*, *causes this*,

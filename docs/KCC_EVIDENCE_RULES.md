@@ -117,13 +117,19 @@ only thing that carries an `evidence.score`. Smith et al. 2016.
 observation arose — by what mechanistic route, at what evidence level — and each parents
 onto one or more KCCs. They are **not** key characteristics and carry **no score**.
 
-| Code | Domain | Primary KCCs | Provenance |
-|------|--------|--------------|------------|
-| EMD1 | Exposure-linked epitranscriptomic regulation | KC4, KC10 | Kazi et al. |
-| EMD2 | Microbiome-mediated disposition and host response | KC1, KC6–KC8, KC10 | Kazi et al. |
-| EMD3 | Phenotypic plasticity and stem-like state transitions | KC4, KC8–KC10 | Kazi et al. |
-| EMD4 | Persistent senescence and a characterised SASP | KC5–KC7, KC9, KC10 | Kazi et al. |
-| CD5 | Disrupted gap-junctional intercellular communication | KC10 | platform-only; not one of the paper's four |
+| Code | Domain | Home KCC(s) | Other links | Provenance |
+|------|--------|-------------|-------------|------------|
+| EMD1 | Exposure-linked epitranscriptomic regulation | KC4 | KC2, KC3, KC10 downstream; KC5 upstream | Kazi et al. |
+| EMD2 | Microbiome-mediated disposition and host response | KC1, KC6 | KC2, KC7, KC8, KC10 downstream | Kazi et al. |
+| EMD3 | Phenotypic plasticity and stem-like state transitions | KC4 | KC9, KC10 downstream; KC8 upstream | Kazi et al. |
+| EMD4 | Persistent senescence and a characterised SASP | KC6 | KC7, KC10 downstream; KC5 upstream; **KC9 contrastive** | Kazi et al. |
+| CD5 | Disrupted gap-junctional intercellular communication | KC10 | KC4, KC8 downstream | platform-only; not one of the paper's four |
+
+Only `home` means "an observation files here". The column above used to read
+"Primary KCCs" and collapsed all four relations into one, which is what let
+EMD3–KC9 sit as a primary link while the prose said a stem-like state is not
+immortalisation. See `candidate_domain_kccs` in
+[DATABASE_TABLES.md](DATABASE_TABLES.md).
 
 **Why this matters for scoring.** A candidate-domain annotation must never be counted as an
 additional independent positive: the same experiment would otherwise contribute twice, once
@@ -139,6 +145,37 @@ no equivalent.
 
 CD5 is a platform-level candidate, not part of the four domains described in the manuscript.
 It is kept separable by its own `source_ref_id` so the distinction survives in exports.
+
+## Simulation-derived validation examples are not evidence
+
+`candidate_domain_validation_examples` holds model-derived annotation and design
+guidance from the EMD simulation paper: what a measurement cannot settle, which
+competing explanation has to be excluded, and what would discriminate between
+them. Four rules govern how they may be read.
+
+1. **They are guidance, not evidence.** A validation example is not an evidence
+   cell. It has no `score`, it is not an agent annotation, and it says nothing
+   about any particular agent.
+2. **They cannot create or modify a KCC score.** There is no column to hold one
+   and no foreign key by which one could propagate. As with the domains
+   themselves, this is structural rather than conventional.
+3. **They are never an independent positive.** Model output cannot be
+   double-counted with the empirical observations used to constrain the model —
+   those observations are already scored on Layer 1. Counting the model's
+   agreement with them as further evidence counts the same experiments twice.
+4. **`evidentiary_status` is a kind, not a rank.** `data-constrained`,
+   `design-constrained`, `structural`, `illustrative`, `prior-dominated` and
+   `predictive` are not ordered. A `structural` result — an algebraic degeneracy,
+   say — can be more decisive than a fitted one; it simply answers a different
+   question. Nothing in the API, the UI or an export may sort or grade on it.
+
+What they *are* for: sharpening the minimum-evidence bars above. "Global m6A
+abundance alone does not qualify" is a rule; `emd1-val-01` is the worked
+demonstration of why, including what the average conceals and what resolution
+recovers it.
+
+`tests/test_domain_validation_examples.py` asserts all of this, including that
+running the seed migration leaves every `evidence` row byte-identical.
 
 ## Direction is a separate axis from strength
 

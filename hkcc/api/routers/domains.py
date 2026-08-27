@@ -7,6 +7,12 @@ evidence bar and exclusions that must be met before an annotation counts.
 They deliberately have no `evidence.score`: an observation is scored once,
 against its KCC. Counting a domain as an additional independent positive would
 double-count the same experiment.
+
+Each domain also carries `validation_examples`: simulation-derived annotation
+and design guidance saying what evidence is insufficient for the domain and what
+would discriminate the mechanism. These do not carry `evidence.score` either, and
+must not be counted as independent KCC positives — they are model output, and the
+observations used to constrain those models are already scored on Layer 1.
 """
 
 from __future__ import annotations
@@ -15,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from hkcc.api.schemas import CandidateDomainOut, DomainAssayLinkOut
+from hkcc.api.schemas import CandidateDomainOut, DomainAssayLinkOut, DomainValidationExampleOut
 from hkcc.db.models import CandidateDomain
 from hkcc.db.session import get_db
 
@@ -25,6 +31,7 @@ _LOAD = (
     selectinload(CandidateDomain.kcc_links),
     selectinload(CandidateDomain.assay_links),
     selectinload(CandidateDomain.reference_links),
+    selectinload(CandidateDomain.validation_examples),
 )
 
 
@@ -55,6 +62,12 @@ def _out(d: CandidateDomain) -> CandidateDomainOut:
             key=lambda link: link.assay_id,
         ),
         reference_ids=sorted(lk.reference_id for lk in d.reference_links),
+        # The relationship is order_by sort_order, but sorting here too keeps the
+        # response stable if the eager load is ever changed.
+        validation_examples=[
+            DomainValidationExampleOut.model_validate(v)
+            for v in sorted(d.validation_examples, key=lambda v: v.sort_order)
+        ],
     )
 
 
