@@ -52,14 +52,18 @@ def page():
 def _rendered_matrix(app) -> str:
     """The heat map exactly as the page hands it to the browser.
 
-    ``components.html`` output lands in an IFrame proto's ``srcdoc``. Asserting
-    on ``matrix_heatmap_html`` directly is what let the stripped rows through.
+    Asserting on ``matrix_heatmap_html`` directly is what let the stripped rows
+    through, so this reads what the page actually emitted. The markup used to
+    arrive as an IFrame ``srcdoc`` (``components.v1.html``) and now arrives as an
+    Html proto ``body`` (``st.html``); both are accepted so the test states the
+    intent rather than the transport.
     """
     for element in app.main:
-        srcdoc = getattr(getattr(element, "proto", None), "srcdoc", "")
-        if srcdoc and "AGENT (" in srcdoc:  # the heat map, not the legend
-            return srcdoc
-    raise AssertionError("matrix component not found in the rendered page")
+        proto = getattr(element, "proto", None)
+        markup = getattr(proto, "srcdoc", "") or getattr(proto, "body", "")
+        if markup and "AGENT (" in markup:  # the heat map, not the legend
+            return markup
+    raise AssertionError("matrix markup not found in the rendered page")
 
 
 @pytest.fixture(scope="module")
