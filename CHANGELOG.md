@@ -106,6 +106,10 @@ version lives in `pyproject.toml` and nothing else hardcodes it.
   was **not** audited. Its links were carried over structurally (`primary`→`home`,
   `secondary`→`downstream`) and need separate review.
 
+## [0.0.11]
+
+Minor fixes.
+
 ## [0.0.10]
 
 Consolidates the pre-publication review: two data sources, a package that ships
